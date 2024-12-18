@@ -7,6 +7,8 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include "utils/console_log.h"
+
 using Microsoft::WRL::ComPtr;
 
 ComPtr<ID3D11Device> g_device;
@@ -87,6 +89,11 @@ void InitDirectX11(GLFWwindow* window) {
 
 
 int main() {
+	//ConsoleLog::consolePrint(ConsoleLog::LogType::C_CRITICAL_ERROR, "Lol critical error ma friend");
+	ConsoleLog::consolePrint(ConsoleLog::LogType::C_ERROR, "Lol error ma friend");
+	ConsoleLog::consolePrint(ConsoleLog::LogType::C_WARNING, "Lol warning ma friend");
+	ConsoleLog::consolePrint(ConsoleLog::LogType::C_INFO, "Lol info ma friend");
+
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
