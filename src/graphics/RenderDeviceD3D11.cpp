@@ -15,7 +15,7 @@ RenderDeviceD3D11::RenderDeviceD3D11(int t_window_width, int t_window_height) {
 		exit(EXIT_FAILURE);
 	}
 
-	InitD3D11();
+    InitD3D11();
 }
 
 RenderDeviceD3D11::~RenderDeviceD3D11() {
@@ -28,26 +28,63 @@ RenderDeviceD3D11::~RenderDeviceD3D11() {
 
 
 void RenderDeviceD3D11::InitD3D11() {
-    // 1. Create the DXGI Factory
-    if (FAILED(CreateDXGIFactory(IID_PPV_ARGS(&m_factory))))
-        throw std::runtime_error("Failed to create DXGI Factory");
+    CreateDXGIFactoryInstance();
+    EnumerateHardwareAdapter();
+    CreateDevice();
+    CreateSwapChain();
+    CreateRenderTargetView();
+    ConfigureViewport();
 
-    // 2. Enumerate the hardware adapter
-    if (FAILED(m_factory->EnumAdapters(0, &m_adapter)))
-        throw std::runtime_error("Failed to enumerate adapters");
+    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "DirectX 11 initialization complete.");
+}
 
-    // 3. Define device creation flags (enable debug layer in debug builds)
+// Creates the DXGI Factory
+void RenderDeviceD3D11::CreateDXGIFactoryInstance() {
+    HRESULT result = CreateDXGIFactory(IID_PPV_ARGS(&m_factory));
+    if (FAILED(result))
+        LogHRESULTError(result, "Failed to create DXGI Factory");
+}
+// Enumerate the hardware adapter
+void RenderDeviceD3D11::EnumerateHardwareAdapter() {
+    HRESULT result = m_factory->EnumAdapters(0, &m_adapter);
+    if (FAILED(result))
+        LogHRESULTError(result, "Failed to enumerate adapters");
+}
+// Create device and device context
+void RenderDeviceD3D11::CreateDevice() {
     UINT deviceFlags = 0;
 #if defined(_DEBUG)
     deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-    // 4. Define swap chain description
+    D3D_FEATURE_LEVEL featureLevels[] = {
+        D3D_FEATURE_LEVEL_11_1,
+        D3D_FEATURE_LEVEL_11_0,
+    };
+    D3D_FEATURE_LEVEL t_featureLevel;
+
+    HRESULT result = D3D11CreateDevice(
+        m_adapter.Get(),              // Use the specific adapter
+        D3D_DRIVER_TYPE_UNKNOWN,      // Must be UNKNOWN when specifying an adapter
+        nullptr,                      // No software rasterizer
+        deviceFlags,                  // Creation flags
+        featureLevels,                // Array of feature levels
+        _countof(featureLevels),      // Number of feature levels
+        D3D11_SDK_VERSION,            // SDK version
+        m_device.GetAddressOf(),      // Output device
+        &t_featureLevel,              // Output feature level
+        m_deviceContext.GetAddressOf()// Output device context
+    );
+    if (FAILED(result))
+        LogHRESULTError(result, "Failed to create Direct3D device");
+}
+// Create the swapchain desc and setup the swapchain
+void RenderDeviceD3D11::CreateSwapChain() {
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
     int width, height;
     glfwGetFramebufferSize(m_window, &width, &height);
 
-    swapChainDesc.BufferCount = 1; // Double buffering
+    swapChainDesc.BufferCount = 2; // Double buffering
     swapChainDesc.BufferDesc.Width = width;
     swapChainDesc.BufferDesc.Height = height;
     swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // RGBA 32-bit
@@ -56,45 +93,32 @@ void RenderDeviceD3D11::InitD3D11() {
     swapChainDesc.SampleDesc.Count = 1; // No MSAA
     swapChainDesc.SampleDesc.Quality = 0;
     swapChainDesc.Windowed = TRUE;
-    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-    // These are the feature levels that we will accept.
-    D3D_FEATURE_LEVEL featureLevels[] =
-    {
-        D3D_FEATURE_LEVEL_11_1,
-        D3D_FEATURE_LEVEL_11_0,
-    };
+    // Use the factory to create the swap chain
+    HRESULT result = m_factory->CreateSwapChain(
+        m_device.Get(),              // The device
+        &swapChainDesc,              // Swap chain description
+        m_swapChain.GetAddressOf()   // Output swap chain
+    );
+}
+// Get the back buffer and create the render target view
+void RenderDeviceD3D11::CreateRenderTargetView() {
+    HRESULT result = m_swapChain->GetBuffer(0, IID_PPV_ARGS(&m_backBuffer));
+    if (FAILED(result))
+        LogHRESULTError(result, "Failed to get the back buffer");
+    result = m_device->CreateRenderTargetView(m_backBuffer.Get(), nullptr, &m_renderTargetView);
+    if (FAILED(result))
+        LogHRESULTError(result, "Failed to create render target view");
 
-    // 5. Create device, device context, and swap chain
-    D3D_FEATURE_LEVEL featureLevel;
-    if (FAILED(D3D11CreateDeviceAndSwapChain(
-        m_adapter.Get(),                   // Specific adapter
-        D3D_DRIVER_TYPE_UNKNOWN,           // Hardware driver type (WRONG)
-        nullptr,                           // Software rasterizer (not used)
-        deviceFlags,                       // Flags
-        featureLevels,                     // Feature levels
-        _countof(featureLevels),           // Number of feature levels
-        D3D11_SDK_VERSION,                 // SDK version
-        &swapChainDesc,                    // Swap chain description
-        m_swapChain.GetAddressOf(),        // Swap chain
-        m_device.GetAddressOf(),           // Device
-        nullptr,                           // Feature level (optional)
-        m_deviceContext.GetAddressOf())))  // Device context
-    {
-        throw std::runtime_error("Failed to create Direct3D device and swap chain");
-    }
-
-    // 6. Get the back buffer and create the render target view
-    if (FAILED(m_swapChain->GetBuffer(0, IID_PPV_ARGS(&m_backBuffer))))
-        throw std::runtime_error("Failed to get the back buffer");
-
-    if (FAILED(m_device->CreateRenderTargetView(m_backBuffer.Get(), nullptr, &m_renderTargetView)))
-        throw std::runtime_error("Failed to create render target view");
-
-    // 7. Set the render target
+    // Set the render target
     m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+}
+// Configure the viewport
+void RenderDeviceD3D11::ConfigureViewport() {
+    int width, height;
+    glfwGetFramebufferSize(m_window, &width, &height);
 
-    // 8. Configure the viewport
     m_viewport.TopLeftX = 0.0f;
     m_viewport.TopLeftY = 0.0f;
     m_viewport.Width = static_cast<FLOAT>(width);
@@ -103,8 +127,6 @@ void RenderDeviceD3D11::InitD3D11() {
     m_viewport.MaxDepth = 1.0f;
 
     m_deviceContext->RSSetViewports(1, &m_viewport);
-
-    std::cout << "DirectX 11 initialization complete." << std::endl;
 }
 
 // Frame lifecycle

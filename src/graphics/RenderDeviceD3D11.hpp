@@ -11,8 +11,6 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
-using Microsoft::WRL::ComPtr;
-
 
 // Vertex structure
 struct VertexData {
@@ -33,15 +31,27 @@ class RenderDeviceD3D11 {
 
 		GLFWwindow* m_window;
 	private:
+		// Creates the DXGI Factory
+		void CreateDXGIFactoryInstance();
+		// Enumerate the hardware adapter
+		void EnumerateHardwareAdapter();
+		// Create device and device context
+		void CreateDevice();
+		// Create the swapchain desc and setup the swapchain
+		void CreateSwapChain();
+		// Get the back buffer and create the render target view
+		void CreateRenderTargetView();
+		// Configure the viewport
+		void ConfigureViewport();
 
-		ComPtr<IDXGIFactory> m_factory;
-		ComPtr<IDXGIAdapter> m_adapter;
+		Microsoft::WRL::ComPtr<IDXGIFactory> m_factory;
+		Microsoft::WRL::ComPtr<IDXGIAdapter> m_adapter;
 
-		ComPtr<ID3D11Device> m_device;
-		ComPtr<ID3D11DeviceContext> m_deviceContext;
-		ComPtr<IDXGISwapChain> m_swapChain;
-		ComPtr<ID3D11Texture2D> m_backBuffer;
-		ComPtr<ID3D11RenderTargetView> m_renderTargetView;
+		Microsoft::WRL::ComPtr<ID3D11Device> m_device;
+		Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_deviceContext;
+		Microsoft::WRL::ComPtr<IDXGISwapChain> m_swapChain;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_backBuffer;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_renderTargetView;
 
 		D3D11_VIEWPORT m_viewport;
 
