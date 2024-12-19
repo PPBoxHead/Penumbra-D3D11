@@ -137,10 +137,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\graphics\RenderDeviceD3D11.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\utils\console_log.h" />
+    <ClInclude Include="src\graphics\RenderDeviceD3D11.hpp" />
+    <ClInclude Include="src\utils\ConsoleLogger.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

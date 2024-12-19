@@ -9,14 +9,14 @@
 
 
 /**
-* @brief ConsoleLog provides thread-safe logging utilities with severity levels.
+* @brief ConsoleLogger provides thread-safe logging utilities with severity levels.
 *
 * This class allows for logging messages to the console with various log levels
 * (INFO, WARNING, ERROR, and CRITICAL ERROR). It uses ANSI color codes to format
 * the output for better readability. Thread safety is ensured through the use
 * of a mutex, and critical errors throw exceptions for robust error handling.
 */
-class ConsoleLog {
+class ConsoleLogger {
 	public:
 		/**
 		* @brief Enumeration of log severity levels.
@@ -52,21 +52,30 @@ class ConsoleLog {
 			std::ostringstream oss;
 			(oss << ... << args); // Fold expression to handle multiple arguments
 
-			// Ensure thread-safe output
-			std::lock_guard<std::mutex> lock(consoleMutex);
+			// Use block scope to ensure lock_guard releases the mutex before exceptions
+			{
+				std::lock_guard<std::mutex> lock(consoleMutex);
 
-			switch (log) {
-			case LogType::C_CRITICAL_ERROR:
+				switch (log) {
+				case LogType::C_CRITICAL_ERROR:
+					// Unlock the mutex before throwing
+					break; // Exit the scope of lock_guard
+				case LogType::C_ERROR:
+					std::cerr << "\033[31m[ERROR]::\033[0m " << oss.str() << std::endl;
+					break;
+				case LogType::C_WARNING:
+					std::cerr << "\033[33m[WARNING]::\033[0m " << oss.str() << std::endl;
+					break;
+				case LogType::C_INFO:
+				default:
+					std::cout << "\033[32m[INFO]::\033[0m " << oss.str() << std::endl;
+					break;
+				}
+			}
+
+			// Throw the exception *after* releasing the mutex
+			if (log == LogType::C_CRITICAL_ERROR) {
 				throw std::runtime_error("[CRITICAL ERROR]::" + oss.str());
-			case LogType::C_ERROR:
-				std::cerr << "\033[31m[ERROR]::\033[0m" << oss.str() << std::endl;
-				break;
-			case LogType::C_WARNING:
-				std::cerr << "\033[33m[WARNING]::\033[0m" << oss.str() << std::endl;
-				break;
-			case LogType::C_INFO:
-				std::cout << "\033[32m[INFO]::\033[0m" << oss.str() << std::endl;
-				break;
 			}
 
 		}
@@ -91,7 +100,7 @@ class ConsoleLog {
 };
 
 // Definition of the static mutex
-std::mutex ConsoleLog::consoleMutex;
+std::mutex ConsoleLogger::consoleMutex;
 
 
 #endif // !CONSOLE_LOG_H
