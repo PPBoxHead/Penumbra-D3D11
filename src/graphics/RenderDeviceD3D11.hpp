@@ -40,6 +40,7 @@ class RenderDeviceD3D11 {
 		void endFrame();
 
 		bool vsync = false;
+		/// TODO -> Take this out and add a pointer reference as argument. Basically quit the window creation from this class
 		GLFWwindow* window;
 	private:
 		// Creates the DXGI Factory
@@ -52,6 +53,7 @@ class RenderDeviceD3D11 {
 		void CreateSwapChain();
 		// Get the back buffer and create the render target view
 		void CreateRenderTargetView();
+		/// TODO -> Change the name of this to CreateRenderPipeline() and add Raster State creation
 		// Create the stencil desc and setup the stencil state
 		void CreateStencilState();
 		// Configure the viewport
