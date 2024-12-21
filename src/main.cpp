@@ -8,7 +8,7 @@ int main() {
 
 	std::array<float, 4> clearColor = { 0.1f, 0.2f, 0.3f, 1.0f };
 	// Main Loop
-	while (!glfwWindowShouldClose(renderDevice->m_window)) {
+	while (!glfwWindowShouldClose(renderDevice->window)) {
 		glfwPollEvents();
 
 		renderDevice->beginFrame(clearColor);
