@@ -65,7 +65,7 @@ void RenderDeviceD3D11::InitializeHardwareAdapter() {
 
     // Get the number of modes that fit the DXGI_FORMAT_R8G8B8A8_UNORM display
     // format for the adapter output (monitor).
-    unsigned int numModes;
+    unsigned int numModes = 0;
     DXGI_MODE_DESC* displayModeList;
     result = m_adapterOutput->GetDisplayModeList(
         DXGI_FORMAT_R16G16B16A16_FLOAT,
@@ -92,36 +92,32 @@ void RenderDeviceD3D11::InitializeHardwareAdapter() {
     glfwGetFramebufferSize(window, &width, &height);
     // Now go through all the display modes and find the one that matches the screen width and height.
     // When a match is found store the numerator and denominator of the refresh rate for that monitor.
-    for (unsigned int i = 0; i < numModes; i++)
-    {
-        if (displayModeList[i].Width == static_cast<unsigned int>(width))
-        {
-            if (displayModeList[i].Height == static_cast<unsigned int>(height))
-            {
+    for (unsigned int i = 0; i < numModes; i++) {
+        if (displayModeList[i].Width == static_cast<unsigned int>(width)) {
+            if (displayModeList[i].Height == static_cast<unsigned int>(height)) {
                 m_numerator = displayModeList[i].RefreshRate.Numerator;
                 m_denominator = displayModeList[i].RefreshRate.Denominator;
             }
         }
     }
 
-    DXGI_ADAPTER_DESC adapterDesc;
-    size_t stringLength;
-
     // Get the adapter (video card) description.
+    DXGI_ADAPTER_DESC adapterDesc;
     result = m_adapter->GetDesc(&adapterDesc);
     if (FAILED(result))
     {
         LogHRESULTError(result, "Failed to get the adapter description");
     }
 
-    // Store the dedicated video card memory in megabytes.
+    // Store the dedicated video card memory in megabytes,
+    // This is mostly for debug information.
     m_videoCardMemory = int(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
-
+    size_t stringLength;
     // Convert the name of the video card to a character array and store it.
     const int error = wcstombs_s(&stringLength, m_videoCardDescription, 128, adapterDesc.Description, 128);
     if (error != 0)
     {
-        ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "Video Card has no name lol: ", error);
+        ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "Failed to convert video card description");
     }
 
 #if defined(_DEBUG)
