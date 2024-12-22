@@ -3,6 +3,12 @@
 #include "../utils/ConsoleLogger.hpp"
 
 
+// This line indicates to hybrid graphics system to prefer the discrete part by default
+extern "C" {
+    _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+    _declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+
 
 RenderDeviceD3D11::RenderDeviceD3D11(int t_window_width, int t_window_height) {
 	glfwInit();
