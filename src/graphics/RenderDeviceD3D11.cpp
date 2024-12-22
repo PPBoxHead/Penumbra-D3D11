@@ -262,7 +262,7 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
         LogHRESULTError(result, "Failed to create Depth-Stencil View: ");
     }
 
-    // Create Depth - Stencil State
+    // Create Depth-Stencil State
     D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
 
     // Set up the description of the stencil state.
@@ -293,10 +293,10 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
         LogHRESULTError(result, "Failed to create depth stencil state");
     }
 
-    // Bind the depth stencil state.
+    // Bind the Depth-Stencil State.
     m_deviceContext->OMSetDepthStencilState(m_depthStencilState.Get(), 1);
 
-    // Setup rasterizer state.
+    // Setup Rasterizer State.
     D3D11_RASTERIZER_DESC rasterizerDesc = {};
     rasterizerDesc.AntialiasedLineEnable = false;
     rasterizerDesc.CullMode = D3D11_CULL_BACK;
