@@ -51,9 +51,51 @@ void RenderDeviceD3D11::CreateDXGIFactoryInstance() {
 }
 // Enumerate the hardware adapter
 void RenderDeviceD3D11::InitializeHardwareAdapter() {
-    HRESULT result = m_factory->EnumAdapters(0, &m_adapter);
-    if (FAILED(result))
-        LogHRESULTError(result, "Failed to enumerate adapters");
+    Microsoft::WRL::ComPtr<IDXGIAdapter> currentAdapter;
+    Microsoft::WRL::ComPtr<IDXGIAdapter> bestAdapter;
+    DXGI_ADAPTER_DESC bestAdapterDesc{};
+    SIZE_T maxDedicatedVideoMemory = 0;
+
+    UINT index = 0;
+
+
+    HRESULT result;
+    // Iterate through all adapters
+    while (m_factory->EnumAdapters(index, &currentAdapter) != DXGI_ERROR_NOT_FOUND) {
+        DXGI_ADAPTER_DESC adapterDesc;
+        result = currentAdapter->GetDesc(&adapterDesc);
+        if (FAILED(result)) {
+            LogHRESULTError(result, "Failed to get adapter description");
+            ++index;
+            continue;
+        }
+
+        // Select the adapter with the highest dedicated video memory
+        if (adapterDesc.DedicatedVideoMemory > maxDedicatedVideoMemory) {
+            maxDedicatedVideoMemory = adapterDesc.DedicatedVideoMemory;
+            bestAdapter = currentAdapter;
+            bestAdapterDesc = adapterDesc;
+        }
+
+        ++index;
+        currentAdapter.Reset(); // Release the current adapter to move to the next
+    }
+
+    // If no suitable adapter was found, log an error
+    if (!bestAdapter) {
+        ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "No suitable adapter found");
+        return;
+    }
+
+    // Store the best adapter
+    m_adapter = bestAdapter;
+
+    // Enumerate the primary adapter output (monitor)
+    result = m_adapter->EnumOutputs(0, &m_adapterOutput);
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to enumerate adapter outputs");
+        return;
+    }
     // Enumerate the primary adapter output (monitor).
     result = m_adapter->EnumOutputs(0, &m_adapterOutput);
 
@@ -98,29 +140,27 @@ void RenderDeviceD3D11::InitializeHardwareAdapter() {
         }
     }
 
-    DXGI_ADAPTER_DESC adapterDesc;
-    size_t stringLength;
 
     // Get the adapter (video card) description.
+    DXGI_ADAPTER_DESC adapterDesc;
     result = m_adapter->GetDesc(&adapterDesc);
     if (FAILED(result))
     {
         LogHRESULTError(result, "Failed to get the adapter description");
     }
 
-    // Store the dedicated video card memory in megabytes.
-    m_videoCardMemory = int(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
-
-    // Convert the name of the video card to a character array and store it.
-    const int error = wcstombs_s(&stringLength, m_videoCardDescription, 128, adapterDesc.Description, 128);
-    if (error != 0)
-    {
-        ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "Video Card has no name lol: ", error);
+    size_t stringLength;
+    const int error = wcstombs_s(&stringLength, m_videoCardDescription, 128, bestAdapterDesc.Description, 128);
+    if (error != 0) {
+        ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "Failed to convert video card description");
     }
 
+    // Store the dedicated video card memory in megabytes.
+    m_videoCardMemory = static_cast<int>(bestAdapterDesc.DedicatedVideoMemory / 1024 / 1024);
+
 #if defined(_DEBUG)
-    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Video Card memory - VRAM: ", m_videoCardMemory, "MB");
-    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Video Card name - Vendor: ", m_videoCardDescription);
+    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Selected Video Card memory - VRAM: ", m_videoCardMemory, "MB");
+    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Selected Video Card name - Vendor: ", m_videoCardDescription);
 #endif
 
     // Release the display mode list.
