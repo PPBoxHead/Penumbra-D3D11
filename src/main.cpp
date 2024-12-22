@@ -11,10 +11,10 @@ int main() {
 	while (!glfwWindowShouldClose(renderDevice->window)) {
 		glfwPollEvents();
 
-		renderDevice->beginFrame(clearColor);
+		renderDevice->StartFrame(clearColor);
 
 		// Present the back buffer to the screen
-		renderDevice->endFrame();
+		renderDevice->PresentFrame();
 	}
 
 	glfwTerminate();

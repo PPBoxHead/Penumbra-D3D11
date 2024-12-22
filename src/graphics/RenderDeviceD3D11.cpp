@@ -35,12 +35,12 @@ RenderDeviceD3D11::~RenderDeviceD3D11() {
 
 void RenderDeviceD3D11::InitD3D11() {
     CreateDXGIFactoryInstance();
-    InitializeHardwareAdapter();
-    CreateDevice();
+    SetupHardwareAdapter();
+    InitializeDeviceAndContext();
     CreateSwapChain();
     CreateRenderTargetView();
-    CreateStencilState();
-    ConfigureViewport();
+    CreateRenderPipeline();
+    SetupViewport();
 
     ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "DirectX 11 initialization complete.");
 }
@@ -53,13 +53,13 @@ ID3D11Device* RenderDeviceD3D11::GetDevice() {
 void RenderDeviceD3D11::CreateDXGIFactoryInstance() {
     HRESULT result = CreateDXGIFactory(IID_PPV_ARGS(&m_factory));
     if (FAILED(result))
-        LogHRESULTError(result, "Failed to create DXGI Factory");
+        LogHRESULTError(result, "Failed to create DXGI Factory: ");
 }
 // Enumerate the hardware adapter
-void RenderDeviceD3D11::InitializeHardwareAdapter() {
+void RenderDeviceD3D11::SetupHardwareAdapter() {
     HRESULT result = m_factory->EnumAdapters(0, &m_adapter);
     if (FAILED(result))
-        LogHRESULTError(result, "Failed to enumerate adapters");
+        LogHRESULTError(result, "Failed to enumerate adapters: ");
     // Enumerate the primary adapter output (monitor).
     result = m_adapter->EnumOutputs(0, &m_adapterOutput);
 
@@ -74,7 +74,7 @@ void RenderDeviceD3D11::InitializeHardwareAdapter() {
         nullptr
     );
     if (FAILED(result))
-        LogHRESULTError(result, "Failed to setup the adapter output");
+        LogHRESULTError(result, "Failed to setup the adapter output: ");
 
     // Create a list to hold all the possible display modes for this monitor/video
     // card combination.
@@ -86,7 +86,7 @@ void RenderDeviceD3D11::InitializeHardwareAdapter() {
         displayModeList
     );
     if (FAILED(result))
-        LogHRESULTError(result, "Failed to create a list to hold all the possible display modes");
+        LogHRESULTError(result, "Failed to create a list to hold all the possible display modes: ");
 
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
@@ -106,7 +106,7 @@ void RenderDeviceD3D11::InitializeHardwareAdapter() {
     result = m_adapter->GetDesc(&adapterDesc);
     if (FAILED(result))
     {
-        LogHRESULTError(result, "Failed to get the adapter description");
+        LogHRESULTError(result, "Failed to get the adapter description: ");
     }
 
     // Store the dedicated video card memory in megabytes,
@@ -128,9 +128,10 @@ void RenderDeviceD3D11::InitializeHardwareAdapter() {
     // Release the display mode list.
     delete[] displayModeList;
     displayModeList = nullptr;
+
 }
 // Create device and device context
-void RenderDeviceD3D11::CreateDevice() {
+void RenderDeviceD3D11::InitializeDeviceAndContext() {
     UINT deviceFlags = 0;
 #if defined(_DEBUG)
     deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -167,7 +168,7 @@ void RenderDeviceD3D11::CreateDevice() {
         m_deviceContext.GetAddressOf()
     );
     if (FAILED(result))
-        LogHRESULTError(result, "Failed to create Direct3D device");
+        LogHRESULTError(result, "Failed to create Direct3D device: ");
 }
 // Create the swapchain desc and setup the swapchain
 void RenderDeviceD3D11::CreateSwapChain() {
@@ -175,7 +176,6 @@ void RenderDeviceD3D11::CreateSwapChain() {
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
-    ZeroMemory(&swapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
     // Double buffering
     swapChainDesc.BufferCount = 2;
 
@@ -222,16 +222,48 @@ void RenderDeviceD3D11::CreateSwapChain() {
 void RenderDeviceD3D11::CreateRenderTargetView() {
     HRESULT result = m_swapChain->GetBuffer(0, IID_PPV_ARGS(&m_backBuffer));
     if (FAILED(result))
-        LogHRESULTError(result, "Failed to get the back buffer");
+        LogHRESULTError(result, "Failed to get the back buffer: ");
     result = m_device->CreateRenderTargetView(m_backBuffer.Get(), nullptr, &m_renderTargetView);
     if (FAILED(result))
-        LogHRESULTError(result, "Failed to create render target view");
+        LogHRESULTError(result, "Failed to create render target view: ");
 }
-// Create the stencil desc and setup the stencil state
-void RenderDeviceD3D11::CreateStencilState() {
-    D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
-    // Initialize the description of the stencil state.
-    ZeroMemory(&depthStencilDesc, sizeof depthStencilDesc);
+// Creates the stencil desc and setup the Stencil State, but also render desc and the Rasterizer State
+void RenderDeviceD3D11::CreateRenderPipeline() {
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+
+    // Create Depth-Stencil Buffer
+    D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
+    depthStencilBufferDesc.Width = width;  // Set width and height of the buffer
+    depthStencilBufferDesc.Height = height;
+    depthStencilBufferDesc.MipLevels = 1;
+    depthStencilBufferDesc.ArraySize = 1;
+    depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // 24-bit depth, 8-bit stencil
+    depthStencilBufferDesc.SampleDesc.Count = 1; // No multi-sampling
+    depthStencilBufferDesc.SampleDesc.Quality = 0;
+    depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    depthStencilBufferDesc.CPUAccessFlags = 0;
+    depthStencilBufferDesc.MiscFlags = 0;
+
+    HRESULT result = m_device->CreateTexture2D(&depthStencilBufferDesc, nullptr, &m_depthStencilBuffer);
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to create Depth-Stencil Buffer: ");
+    }
+
+    // Create Depth-Stencil View
+    D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc{};
+    depthStencilViewDesc.Format = depthStencilBufferDesc.Format;
+    depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    depthStencilViewDesc.Texture2D.MipSlice = 0;
+
+    result = m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), &depthStencilViewDesc, &m_depthStencilView);
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to create Depth-Stencil View: ");
+    }
+
+    // Create Depth - Stencil State
+    D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
 
     // Set up the description of the stencil state.
     depthStencilDesc.DepthEnable = true;
@@ -255,21 +287,44 @@ void RenderDeviceD3D11::CreateStencilState() {
     depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
     // Create the depth stencil state.
-    HRESULT result = m_device->CreateDepthStencilState(&depthStencilDesc, &m_depthStencilState);
+    result = m_device->CreateDepthStencilState(&depthStencilDesc, &m_depthStencilState);
     if (FAILED(result))
     {
         LogHRESULTError(result, "Failed to create depth stencil state");
     }
 
-    // Set the depth stencil state.
+    // Bind the depth stencil state.
     m_deviceContext->OMSetDepthStencilState(m_depthStencilState.Get(), 1);
 
-    // Set the render target
-    // Bind the render target view and depth stencil buffer to the output render pipeline
+    // Setup rasterizer state.
+    D3D11_RASTERIZER_DESC rasterizerDesc = {};
+    rasterizerDesc.AntialiasedLineEnable = false;
+    rasterizerDesc.CullMode = D3D11_CULL_BACK;
+    rasterizerDesc.DepthBias = 0;
+    rasterizerDesc.DepthBiasClamp = 0.0f;
+    rasterizerDesc.DepthClipEnable = true;
+    rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+    rasterizerDesc.FrontCounterClockwise = false;
+    rasterizerDesc.MultisampleEnable = false;
+    rasterizerDesc.ScissorEnable = false;
+    rasterizerDesc.SlopeScaledDepthBias = 0.0f;
+
+    result = m_device->CreateRasterizerState(&rasterizerDesc, &m_rasterizerState);
+    if (FAILED(result))
+        LogHRESULTError(result, "Failed to create Rasterize State: ");
+
+    // Now bind the rasterizer state.
+    m_deviceContext->RSSetState(m_rasterizerState.Get());
+
+    // Bind Render Target and Depth-Stencil Views
+    if (!m_renderTargetView || !m_depthStencilView) {
+        ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "Render target or depth stencil view is uninitialized.");
+        return;
+    }
     m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 }
 // Configure the viewport
-void RenderDeviceD3D11::ConfigureViewport() {
+void RenderDeviceD3D11::SetupViewport() {
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
@@ -284,10 +339,10 @@ void RenderDeviceD3D11::ConfigureViewport() {
 }
 
 // Frame lifecycle
-void RenderDeviceD3D11::beginFrame(const std::array<float, 4>& clearColor) {
+void RenderDeviceD3D11::StartFrame(const std::array<float, 4>& clearColor) {
 	m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor.data());
 }
-void RenderDeviceD3D11::endFrame() {
+void RenderDeviceD3D11::PresentFrame() {
 	m_swapChain->Present(1, 0);
 }
 
@@ -297,4 +352,7 @@ void RenderDeviceD3D11::LogHRESULTError(HRESULT hr, const char* message) {
 	FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		nullptr, hr, 0, buffer, sizeof(buffer), nullptr);
 	ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, message, buffer);
+
+    glfwTerminate();
+    exit(EXIT_FAILURE);
 }
