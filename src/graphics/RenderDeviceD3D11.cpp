@@ -252,7 +252,7 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
     }
 
     // Create Depth-Stencil View
-    D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc{};
+    D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc = {};
     depthStencilViewDesc.Format = depthStencilBufferDesc.Format;
     depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
     depthStencilViewDesc.Texture2D.MipSlice = 0;
@@ -290,7 +290,7 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
     result = m_device->CreateDepthStencilState(&depthStencilDesc, &m_depthStencilState);
     if (FAILED(result))
     {
-        LogHRESULTError(result, "Failed to create depth stencil state");
+        LogHRESULTError(result, "Failed to create depth stencil state: ");
     }
 
     // Bind the Depth-Stencil State.
