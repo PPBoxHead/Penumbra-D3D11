@@ -76,6 +76,12 @@
     <OutDir>$(SolutionDir)\bin\$(ProjectName)\$(Configuration)-$(Platform)\exe_output</OutDir>
     <IntDir>$(SolutionDir)\bin\$(ProjectName)\$(Configuration)-$(Platform)\exe_intermediates</IntDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)\bin\$(ProjectName)\$(Configuration)-$(Platform)\exe_output</OutDir>
+    <IntDir>$(SolutionDir)\bin\$(ProjectName)\$(Configuration)-$(Platform)\exe_intermediates</IntDir>
+    <IncludePath>third-party\include;$(IncludePath)</IncludePath>
+    <LibraryPath>third-party\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -128,12 +134,16 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>glfw3.lib;d3d11.lib
+;dxgi.lib
+;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
