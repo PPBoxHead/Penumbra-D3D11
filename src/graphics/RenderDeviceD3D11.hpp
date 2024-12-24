@@ -7,10 +7,6 @@
 #include <wrl/client.h> // For ComPtr
 #include <array>
 
-#include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
-
 
 // Vertex structure
 struct VertexData {
@@ -29,9 +25,8 @@ struct SimpleVertexData {
 
 class RenderDeviceD3D11 {
 	public:
-		RenderDeviceD3D11(int t_window_width, int t_window_height);
+		RenderDeviceD3D11(int t_window_width, int t_window_height, HWND t_window);
 		~RenderDeviceD3D11();
-		void InitD3D11();
 
 		ID3D11Device* GetDevice();
 
@@ -39,21 +34,21 @@ class RenderDeviceD3D11 {
 		void StartFrame(const std::array<float, 4>& clearColor);
 		void PresentFrame();
 
-		bool vsync = false;
-		/// TODO -> Take this out and add a pointer reference as argument. Basically quit the window creation from this class
-		GLFWwindow* window;
+		bool is_vsync_enabled = false;
+		
 	private:
+		// This function calls all the next steps declarated in this header
+		void InitD3D11(HWND t_hwnd);
 		// Creates the DXGI Factory
-		void CreateDXGIFactoryInstance();
+		void CreateFactory();
 		// Enumerate the hardware adapter
 		void SetupHardwareAdapter();
 		// Create device and device context
 		void InitializeDeviceAndContext();
 		// Create the swapchain desc and setup the swapchain
-		void CreateSwapChain();
+		void CreateSwapChain(HWND t_hwnd);
 		// Get the back buffer and create the render target view
 		void CreateRenderTargetView();
-		/// TODO -> Change the name of this to CreateRenderPipeline() and add Raster State creation
 		// Creates the stencil desc and setup the Stencil State, but also render desc and the Rasterizer State
 		void CreateRenderPipeline();
 		// Configure the viewport
@@ -61,6 +56,9 @@ class RenderDeviceD3D11 {
 
 		int m_videoCardMemory;
 		char m_videoCardDescription[128];
+
+		int m_windowWidth;
+		int m_windowHeight;
 
 		Microsoft::WRL::ComPtr<IDXGIFactory> m_factory;
 		Microsoft::WRL::ComPtr<IDXGIAdapter> m_adapter;

@@ -10,34 +10,27 @@ extern "C" {
 }
 
 
-RenderDeviceD3D11::RenderDeviceD3D11(int t_window_width, int t_window_height) {
-	glfwInit();
+RenderDeviceD3D11::RenderDeviceD3D11(int t_window_width, int t_window_height, HWND t_hwnd) {
+    m_windowWidth = t_window_width;
+    m_windowHeight = t_window_height;
 
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	window = glfwCreateWindow(t_window_width, t_window_height, "Penumbra-D3D11 Window :D", nullptr, nullptr);
-	if (window == nullptr) {
-		ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "Unable to create GLFW window");
-		glfwTerminate();
-		exit(EXIT_FAILURE);
-	}
-
-    InitD3D11();
+    InitD3D11(t_hwnd);
 }
 
 RenderDeviceD3D11::~RenderDeviceD3D11() {
-	if (window) {
-		glfwDestroyWindow(window);
-		window = nullptr;
-	}
-	glfwTerminate();
+
 }
 
+ID3D11Device* RenderDeviceD3D11::GetDevice() {
+    return m_device.Get();
+}
 
-void RenderDeviceD3D11::InitD3D11() {
-    CreateDXGIFactoryInstance();
+// This function calls all the next steps declarated in this header
+void RenderDeviceD3D11::InitD3D11(HWND t_hwnd) {
+    CreateFactory();
     SetupHardwareAdapter();
     InitializeDeviceAndContext();
-    CreateSwapChain();
+    CreateSwapChain(t_hwnd);
     CreateRenderTargetView();
     CreateRenderPipeline();
     SetupViewport();
@@ -45,12 +38,8 @@ void RenderDeviceD3D11::InitD3D11() {
     ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "DirectX 11 initialization complete.");
 }
 
-ID3D11Device* RenderDeviceD3D11::GetDevice() {
-    return m_device.Get();
-}
-
 // Creates the DXGI Factory
-void RenderDeviceD3D11::CreateDXGIFactoryInstance() {
+void RenderDeviceD3D11::CreateFactory() {
     HRESULT result = CreateDXGIFactory(IID_PPV_ARGS(&m_factory));
     if (FAILED(result))
         LogHRESULTError(result, "Failed to create DXGI Factory: ");
@@ -88,13 +77,11 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
     if (FAILED(result))
         LogHRESULTError(result, "Failed to create a list to hold all the possible display modes: ");
 
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
     // Now go through all the display modes and find the one that matches the screen width and height.
     // When a match is found store the numerator and denominator of the refresh rate for that monitor.
     for (unsigned int i = 0; i < numModes; i++) {
-        if (displayModeList[i].Width == static_cast<unsigned int>(width)) {
-            if (displayModeList[i].Height == static_cast<unsigned int>(height)) {
+        if (displayModeList[i].Width == static_cast<unsigned int>(m_windowWidth)) {
+            if (displayModeList[i].Height == static_cast<unsigned int>(m_windowHeight)) {
                 m_numerator = displayModeList[i].RefreshRate.Numerator;
                 m_denominator = displayModeList[i].RefreshRate.Denominator;
             }
@@ -171,20 +158,18 @@ void RenderDeviceD3D11::InitializeDeviceAndContext() {
         LogHRESULTError(result, "Failed to create Direct3D device: ");
 }
 // Create the swapchain desc and setup the swapchain
-void RenderDeviceD3D11::CreateSwapChain() {
+void RenderDeviceD3D11::CreateSwapChain(HWND t_hwnd) {
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
 
     // Double buffering
     swapChainDesc.BufferCount = 2;
 
-    swapChainDesc.BufferDesc.Width = width;
-    swapChainDesc.BufferDesc.Height = height;
+    swapChainDesc.BufferDesc.Width = m_windowWidth;
+    swapChainDesc.BufferDesc.Height = m_windowHeight;
     // RGBA 32-bit
     swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; 
 
-    if (vsync)
+    if (is_vsync_enabled)
     {
         swapChainDesc.BufferDesc.RefreshRate.Numerator = m_numerator;
         swapChainDesc.BufferDesc.RefreshRate.Denominator = m_denominator;
@@ -201,7 +186,7 @@ void RenderDeviceD3D11::CreateSwapChain() {
     swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
     swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 
-    swapChainDesc.OutputWindow = glfwGetWin32Window(window);
+    swapChainDesc.OutputWindow = t_hwnd;
 
     swapChainDesc.SampleDesc.Count = 1; // No MSAA
     swapChainDesc.SampleDesc.Quality = 0; 
@@ -229,13 +214,10 @@ void RenderDeviceD3D11::CreateRenderTargetView() {
 }
 // Creates the stencil desc and setup the Stencil State, but also render desc and the Rasterizer State
 void RenderDeviceD3D11::CreateRenderPipeline() {
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
-
     // Create Depth-Stencil Buffer
     D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
-    depthStencilBufferDesc.Width = width;  // Set width and height of the buffer
-    depthStencilBufferDesc.Height = height;
+    depthStencilBufferDesc.Width = m_windowWidth;  // Set width and height of the buffer
+    depthStencilBufferDesc.Height = m_windowHeight;
     depthStencilBufferDesc.MipLevels = 1;
     depthStencilBufferDesc.ArraySize = 1;
     depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // 24-bit depth, 8-bit stencil
@@ -325,13 +307,10 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
 }
 // Configure the viewport
 void RenderDeviceD3D11::SetupViewport() {
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
-
     m_viewport.TopLeftX = 0.0f;
     m_viewport.TopLeftY = 0.0f;
-    m_viewport.Width = static_cast<FLOAT>(width);
-    m_viewport.Height = static_cast<FLOAT>(height);
+    m_viewport.Width = static_cast<FLOAT>(m_windowWidth);
+    m_viewport.Height = static_cast<FLOAT>(m_windowHeight);
     m_viewport.MinDepth = 0.0f;
     m_viewport.MaxDepth = 1.0f;
 
@@ -353,6 +332,5 @@ void RenderDeviceD3D11::LogHRESULTError(HRESULT hr, const char* message) {
 		nullptr, hr, 0, buffer, sizeof(buffer), nullptr);
 	ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, message, buffer);
 
-    glfwTerminate();
     exit(EXIT_FAILURE);
 }
