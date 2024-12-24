@@ -25,6 +25,10 @@ ID3D11Device* RenderDeviceD3D11::GetDevice() {
     return m_device.Get();
 }
 
+ID3D11DeviceContext* RenderDeviceD3D11::GetDeviceContext() {
+    return m_deviceContext.Get();
+}
+
 // This function calls all the next steps declarated in this header
 void RenderDeviceD3D11::InitD3D11(HWND t_hwnd) {
     CreateFactory();
@@ -268,7 +272,7 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
     depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
     depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
-    // Create the depth stencil state.
+    // Create the Depth-Stencil State.
     result = m_device->CreateDepthStencilState(&depthStencilDesc, &m_depthStencilState);
     if (FAILED(result))
     {
@@ -295,7 +299,7 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
     if (FAILED(result))
         LogHRESULTError(result, "Failed to create Rasterize State: ");
 
-    // Now bind the rasterizer state.
+    // Now bind the Rasterizer State.
     m_deviceContext->RSSetState(m_rasterizerState.Get());
 
     // Bind Render Target and Depth-Stencil Views
@@ -319,10 +323,16 @@ void RenderDeviceD3D11::SetupViewport() {
 
 // Frame lifecycle
 void RenderDeviceD3D11::StartFrame(const std::array<float, 4>& clearColor) {
+    // Bind the render target view and depth/stencil view
+    m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+
+    // Clear the Render Target View
 	m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor.data());
+    // Clear the Depth-Stencil View
+    m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 void RenderDeviceD3D11::PresentFrame() {
-	m_swapChain->Present(1, 0);
+        m_swapChain->Present(is_vsync_enabled ? 1 : 0, 0);
 }
 
 

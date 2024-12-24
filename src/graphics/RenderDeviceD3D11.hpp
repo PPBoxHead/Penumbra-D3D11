@@ -29,6 +29,7 @@ class RenderDeviceD3D11 {
 		~RenderDeviceD3D11();
 
 		ID3D11Device* GetDevice();
+		ID3D11DeviceContext* GetDeviceContext();
 
 		// Frame lifecycle
 		void StartFrame(const std::array<float, 4>& clearColor);
