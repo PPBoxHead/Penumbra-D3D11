@@ -222,11 +222,14 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
     D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
     depthStencilBufferDesc.Width = m_windowWidth;  // Set width and height of the buffer
     depthStencilBufferDesc.Height = m_windowHeight;
+
     depthStencilBufferDesc.MipLevels = 1;
     depthStencilBufferDesc.ArraySize = 1;
     depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // 24-bit depth, 8-bit stencil
-    depthStencilBufferDesc.SampleDesc.Count = 1; // No multi-sampling
+
+    depthStencilBufferDesc.SampleDesc.Count = 1; // No MSAA
     depthStencilBufferDesc.SampleDesc.Quality = 0;
+
     depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;
     depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
     depthStencilBufferDesc.CPUAccessFlags = 0;
@@ -239,7 +242,7 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
 
     // Create Depth-Stencil View
     D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc = {};
-    depthStencilViewDesc.Format = depthStencilBufferDesc.Format;
+    depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
     depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
     depthStencilViewDesc.Texture2D.MipSlice = 0;
 
