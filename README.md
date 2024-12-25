@@ -15,6 +15,7 @@ At the moment of writing this *(2024/12/25)*, there's not almost any feature to 
 
 **Soon it will pass a big change to match this ideal**
 
+
 ## Build and Run
 
 The project is intended to be used on any Windows OS that supports DirectX 11, **There's not any support to build on platforms out of Windows.**
