@@ -4,9 +4,9 @@
 
 #include <d3dcompiler.h>
 
-#include "graphics/RenderDeviceD3D11.hpp"
-#include "graphics/VertexFormat.h"
-//#include "utils/ConsoleLogger.hpp"
+#include "Graphics/RenderDeviceD3D11.hpp"
+#include "Graphics/VertexFormat.h"
+#include "Utils/ConsoleLogger.hpp"
 
 using namespace Microsoft::WRL;
 
@@ -16,7 +16,7 @@ int main() {
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	GLFWwindow* window = glfwCreateWindow(800, 600, "Penumbra-D3D11 Window :D", nullptr, nullptr);
 	if (window == nullptr) {
-		//ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "Unable to create GLFW window");
+		ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "Unable to create GLFW window");
 		glfwTerminate();
 		exit(EXIT_FAILURE);
 	}

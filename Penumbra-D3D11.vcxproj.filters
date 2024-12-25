@@ -18,18 +18,18 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\graphics\RenderDeviceD3D11.cpp">
+    <ClCompile Include="src\Graphics\RenderDeviceD3D11.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\utils\ConsoleLogger.hpp">
+    <ClInclude Include="src\Utils\ConsoleLogger.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\graphics\RenderDeviceD3D11.hpp">
+    <ClInclude Include="src\Graphics\RenderDeviceD3D11.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\graphics\VertexFormat.h">
+    <ClInclude Include="src\Graphics\VertexFormat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

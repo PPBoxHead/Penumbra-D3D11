@@ -1,6 +1,6 @@
 #include "RenderDeviceD3D11.hpp"
 
-#include "../utils/ConsoleLogger.hpp"
+#include "../Utils/ConsoleLogger.hpp"
 
 
 // This line indicates to hybrid graphics system to prefer the discrete part by default

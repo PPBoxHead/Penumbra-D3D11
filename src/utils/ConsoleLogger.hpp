@@ -96,12 +96,8 @@ class ConsoleLogger {
 
 	private:
 		// Mutex for thread-safe logging
-		static std::mutex consoleMutex;
+		static inline std::mutex consoleMutex;
 };
-
-// Definition of the static mutex
-std::mutex ConsoleLogger::consoleMutex;
-
 
 #endif // !CONSOLE_LOG_H
 
