@@ -5,6 +5,7 @@
 #include <d3dcompiler.h>
 
 #include "graphics/RenderDeviceD3D11.hpp"
+#include "graphics/VertexFormat.h"
 //#include "utils/ConsoleLogger.hpp"
 
 using namespace Microsoft::WRL;
@@ -26,7 +27,7 @@ int main() {
 	ID3D11DeviceContext* deviceContext = renderDevice->GetDeviceContext();
 		/// First create the Vertex Buffer
 	// Declare the vertices and their data, in this case, vertex position and vertex colors
-	SimpleVertexData vertices[] = {
+	ColoredVertexData vertices[] = {
 		{ DirectX::XMFLOAT3(0.0f, 0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) }, // Top (Red)
 		{ DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) }, // Bottom Right (Green)
 		{ DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) }  // Bottom Left (Blue)
@@ -151,7 +152,7 @@ int main() {
 		deviceContext->VSSetShader(vertex_shader.Get(), nullptr, 0);
 		deviceContext->PSSetShader(pixel_shader.Get(), nullptr, 0);
 
-		UINT stride = sizeof(SimpleVertexData);
+		UINT stride = sizeof(ColoredVertexData);
 		UINT offset = 0;
 		//Bind the vertex buffer
 		deviceContext->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);

@@ -29,5 +29,8 @@
     <ClInclude Include="src\graphics\RenderDeviceD3D11.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\graphics\VertexFormat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

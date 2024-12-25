@@ -8,21 +8,6 @@
 #include <array>
 
 
-// Vertex structure
-struct VertexData {
-	DirectX::XMFLOAT3 vPosition;
-	DirectX::XMFLOAT3 vNormal;
-	DirectX::XMFLOAT4 vColor;
-	DirectX::XMFLOAT2 vUv;
-};
-
-// Vertex structure
-struct SimpleVertexData {
-	DirectX::XMFLOAT3 vPosition;
-	DirectX::XMFLOAT4 vColor;
-};
-
-
 class RenderDeviceD3D11 {
 	public:
 		RenderDeviceD3D11(int t_window_width, int t_window_height, HWND t_window);
@@ -55,7 +40,12 @@ class RenderDeviceD3D11 {
 		// Configure the viewport
 		void SetupViewport();
 
-		int m_videoCardMemory;
+		void LogHRESULTError(HRESULT hr, const char* message);
+
+	private:
+		int m_videoCardDedicatedMemory;
+		int m_videoCardDedicatedSystemMemory;
+		int m_videoCardSharedSystemMemory;
 		char m_videoCardDescription[128];
 
 		int m_windowWidth;
@@ -63,7 +53,7 @@ class RenderDeviceD3D11 {
 
 		Microsoft::WRL::ComPtr<IDXGIFactory> m_factory;
 		Microsoft::WRL::ComPtr<IDXGIAdapter> m_adapter;
-		Microsoft::WRL::ComPtr <IDXGIOutput> m_adapterOutput;
+		Microsoft::WRL::ComPtr<IDXGIOutput> m_adapterOutput;
 		unsigned m_numerator = 0;
 		unsigned m_denominator = 1;
 
@@ -81,7 +71,6 @@ class RenderDeviceD3D11 {
 
 		D3D11_VIEWPORT m_viewport;
 
-		void LogHRESULTError(HRESULT hr, const char* message);
 };
 
 

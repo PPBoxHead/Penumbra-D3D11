@@ -102,7 +102,13 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
 
     // Store the dedicated video card memory in megabytes,
     // This is mostly for debug information.
-    m_videoCardMemory = int(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
+    m_videoCardDedicatedMemory = int(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
+    // Store the dedicated system video card memory in megabytes,
+    // This is mostly for debug information.
+    m_videoCardDedicatedSystemMemory = int(adapterDesc.DedicatedSystemMemory / 1024 / 1024);
+    // Store the shared system video card memory in megabytes,
+    // This is mostly for debug information.
+    m_videoCardSharedSystemMemory = int(adapterDesc.SharedSystemMemory / 1024 / 1024);
     size_t stringLength;
     // Convert the name of the video card to a character array and store it.
     const int error = wcstombs_s(&stringLength, m_videoCardDescription, 128, adapterDesc.Description, 128);
@@ -112,7 +118,9 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
     }
 
 #if defined(_DEBUG)
-    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Video Card memory - VRAM: ", m_videoCardMemory, "MB");
+    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Video Card dedicated memory - VRAM: ", m_videoCardDedicatedMemory, "MB");
+    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Video Card dedicated system memory - VRAM: ", m_videoCardDedicatedSystemMemory, "MB");
+    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Video Card shared system memory - RAM: ", m_videoCardSharedSystemMemory, "MB");
     ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Video Card name - Vendor: ", m_videoCardDescription);
 #endif
 
