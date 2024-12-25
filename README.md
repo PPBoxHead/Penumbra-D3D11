@@ -2,12 +2,12 @@
 # Penumbra-D3D11
 
 **Penumbra-D3D11** it's a *DirectX 11* renderer/game engine and my first approach/try into the Direct3D API.
-It's a project meant to be a 3D render engine written in C++17.
+This project is meant to be a 3D FPS-based Game Engine written in C++17.
 
 
 ## Disclaimer
 
-This project is meant to be a FPS-based Game Engine, not a general purpose game engine like *Unity Engine*, *Unreal Engine* or *Godot Engine*.
+This project is meant to be a 3D FPS-based Game Engine, not a general purpose game engine like *Unity Engine*, *Unreal Engine* or *Godot Engine*.
 
 I have to change a lot of things on the current repository, add definitions and some core system features before work on the *sugar* which it's the D3D11 rendering stuff. I have to define the API, naming conventions and namespaces.
 
