@@ -21,6 +21,12 @@
     <ClCompile Include="src\Graphics\RenderDeviceD3D11.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\graphics\Shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\FileSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Utils\ConsoleLogger.hpp">
@@ -32,5 +38,15 @@
     <ClInclude Include="src\Graphics\VertexFormat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\graphics\Shader.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\FileSystem.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="resources\shaders\TestShader_vs.hlsl" />
+    <FxCompile Include="resources\shaders\TestShader_ps.hlsl" />
   </ItemGroup>
 </Project>

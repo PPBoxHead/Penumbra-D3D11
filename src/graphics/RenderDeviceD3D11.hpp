@@ -44,7 +44,6 @@ class RenderDeviceD3D11 {
 
 	private:
 		int m_videoCardDedicatedMemory;
-		int m_videoCardDedicatedSystemMemory;
 		int m_videoCardSharedSystemMemory;
 		char m_videoCardDescription[128];
 

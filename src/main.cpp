@@ -57,6 +57,8 @@ int main() {
 	// Create the index buffer
 	device->CreateBuffer(&indexBufferDesc, &indexData, &indexBuffer);
 
+
+
 		/// Now let's create and compile Vertex and Pixel shaders
 	const char* hlsl = R"(
 		struct VertexIn {
