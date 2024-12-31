@@ -2,86 +2,145 @@
 
 #include <d3dcompiler.h>
 #include <stdexcept>
+#include <cstring>
+
 
 using namespace Microsoft::WRL;
 
-bool Shader::Initialize(ID3D11Device* device, const std::wstring& vsPath, const std::wstring& psPath) {
-    ComPtr<ID3DBlob> vsBlob;
-    ComPtr<ID3DBlob> psBlob;
-
-    // Compile Vertex Shader
-    if (!CompileShader(vsPath, "vs_main", "vs_5_0", vsBlob))
+bool Shader::Initialize(ID3D11Device* device, const ShaderDesc& desc) {
+    // Compile and create shaders based on the descriptor
+    if (!CompileAndCreateShader(device, desc.vertexShaderPath, desc.vertexEntryPoint, desc.vertexTarget, m_vertexShader))
         return false;
 
-    // Create Vertex Shader
-    if (FAILED(device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &m_vertexShader)))
+    if (!CompileAndCreateShader(device, desc.pixelShaderPath, desc.pixelEntryPoint, desc.pixelTarget, m_pixelShader))
         return false;
 
-    // Define Input Layout
-    D3D11_INPUT_ELEMENT_DESC layout[] = {
-        {"POS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-    };
-
-    if (FAILED(device->CreateInputLayout(layout, _countof(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &m_inputLayout)))
+    if (!CompileAndCreateShader(device, desc.geometryShaderPath, desc.geometryEntryPoint, desc.geometryTarget, m_geometryShader))
         return false;
 
-    // Compile Pixel Shader
-    if (!CompileShader(psPath, "ps_main", "ps_5_0", psBlob))
+    if (!CompileAndCreateShader(device, desc.hullShaderPath, desc.hullEntryPoint, desc.hullTarget, m_hullShader))
         return false;
 
-    // Create Pixel Shader
-    if (FAILED(device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &m_pixelShader)))
+    if (!CompileAndCreateShader(device, desc.domainShaderPath, desc.domainEntryPoint, desc.domainTarget, m_domainShader))
         return false;
 
-    // Create a constant buffer (example: size of 16 bytes for a simple structure)
-    CreateConstantBuffer(device, 16);
+    if (!CompileAndCreateShader(device, desc.computeShaderPath, desc.computeEntryPoint, desc.computeTarget, m_computeShader))
+        return false;
 
     return true;
 }
 
-bool Shader::CompileShader(const std::wstring& filePath, const std::string& entryPoint, const std::string& target, ComPtr<ID3DBlob>& shaderBlob) {
+bool Shader::CompileAndCreateShader(
+    ID3D11Device* device,
+    const std::optional<std::wstring>& filePath,
+    const std::string& entryPoint,
+    const std::string& target,
+    ComPtr<ID3D11DeviceChild> shader)
+{
+    if (!filePath) // Skip if the shader is not provided
+        return true;
+
+    ComPtr<ID3DBlob> shaderBlob;
     ComPtr<ID3DBlob> errorBlob;
-    HRESULT hr = D3DCompileFromFile(filePath.c_str(), nullptr, nullptr, entryPoint.c_str(), target.c_str(),
-        D3DCOMPILE_ENABLE_STRICTNESS, 0, &shaderBlob, &errorBlob);
 
-    if (FAILED(hr))
-    {
-        if (errorBlob)
+    HRESULT hr = D3DCompileFromFile(
+        filePath->c_str(),
+        nullptr,
+        nullptr,
+        entryPoint.c_str(),
+        target.c_str(),
+        D3DCOMPILE_ENABLE_STRICTNESS,
+        0,
+        &shaderBlob,
+        &errorBlob
+    );
+
+    if (FAILED(hr)) {
+        if (errorBlob) {
             OutputDebugStringA(reinterpret_cast<const char*>(errorBlob->GetBufferPointer()));
+        }
         return false;
     }
 
+    // Create the appropriate shader type
+    if (target.find("vs")) {
+        hr = device->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, reinterpret_cast<ID3D11VertexShader**>(shader.GetAddressOf()));
+    }
+    else if (target.find("ps")) {
+        hr = device->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, reinterpret_cast<ID3D11PixelShader**>(shader.GetAddressOf()));
+    }
+    else if (target.find("gs")) {
+        hr = device->CreateGeometryShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, reinterpret_cast<ID3D11GeometryShader**>(shader.GetAddressOf()));
+    }
+    else if (target.find("hs")) {
+        hr = device->CreateHullShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, reinterpret_cast<ID3D11HullShader**>(shader.GetAddressOf()));
+    }
+    else if (target.find("ds")) {
+        hr = device->CreateDomainShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, reinterpret_cast<ID3D11DomainShader**>(shader.GetAddressOf()));
+    }
+    else if (target.find("cs")) {
+        hr = device->CreateComputeShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, reinterpret_cast<ID3D11ComputeShader**>(shader.GetAddressOf()));
+    }
+
+    return SUCCEEDED(hr);
+}
+
+void Shader::SetShaders(ID3D11DeviceContext* context) {
+    context->IASetInputLayout(m_inputLayout.Get());
+    context->VSSetShader(reinterpret_cast<ID3D11VertexShader*>(m_vertexShader.Get()), nullptr, 0);
+    context->PSSetShader(reinterpret_cast<ID3D11PixelShader*>(m_pixelShader.Get()), nullptr, 0);
+    context->GSSetShader(reinterpret_cast<ID3D11GeometryShader*>(m_geometryShader.Get()), nullptr, 0);
+    context->HSSetShader(reinterpret_cast<ID3D11HullShader*>(m_hullShader.Get()), nullptr, 0);
+    context->DSSetShader(reinterpret_cast<ID3D11DomainShader*>(m_domainShader.Get()), nullptr, 0);
+    context->CSSetShader(reinterpret_cast<ID3D11ComputeShader*>(m_computeShader.Get()), nullptr, 0);
+}
+
+bool Shader::CreateConstantBuffer(ID3D11Device* device, const std::string& name, const ConstantBufferDesc& desc) {
+    if (m_constantBuffers.count(name) > 0) {
+        throw std::runtime_error("Constant buffer with name '" + name + "' already exists");
+    }
+
+    D3D11_BUFFER_DESC bufferDesc = {};
+    bufferDesc.ByteWidth = static_cast<UINT>(desc.bufferSize);
+    bufferDesc.Usage = desc.usage;
+    bufferDesc.BindFlags = desc.bindFlags;
+    bufferDesc.CPUAccessFlags = desc.cpuAccessFlags;
+
+    ComPtr<ID3D11Buffer> buffer;
+    if (FAILED(device->CreateBuffer(&bufferDesc, nullptr, &buffer))) {
+        throw std::runtime_error("Failed to create constant buffer '" + name + "'");
+    }
+
+    m_constantBuffers[name] = buffer;
     return true;
 }
 
-void Shader::CreateConstantBuffer(ID3D11Device* device, size_t dataSize) {
-    D3D11_BUFFER_DESC bufferDesc = {};
-    bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-    bufferDesc.ByteWidth = static_cast<UINT>(dataSize);
-    bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-    if (FAILED(device->CreateBuffer(&bufferDesc, nullptr, &m_constantBuffer)))
-    {
-        throw std::runtime_error("Failed to create constant buffer");
+void Shader::UpdateConstantBuffer(ID3D11DeviceContext* context, const std::string& name, void* data, size_t dataSize) {
+    auto it = m_constantBuffers.find(name);
+    if (it == m_constantBuffers.end()) {
+        throw std::runtime_error("Constant buffer '" + name + "' not found");
     }
-}
 
-void Shader::SetShader(ID3D11DeviceContext* context) {
-    context->IASetInputLayout(m_inputLayout.Get());
-    context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-    context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-    context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
-}
-
-void Shader::UpdateConstantBuffer(ID3D11DeviceContext* context, void* data, size_t dataSize) {
     D3D11_MAPPED_SUBRESOURCE mappedResource;
-    if (FAILED(context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource)))
-    {
-        throw std::runtime_error("Failed to map constant buffer");
+    if (FAILED(context->Map(it->second.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource))) {
+        throw std::runtime_error("Failed to map constant buffer '" + name + "'");
     }
 
     memcpy(mappedResource.pData, data, dataSize);
-    context->Unmap(m_constantBuffer.Get(), 0);
+    context->Unmap(it->second.Get(), 0);
+}
+
+void Shader::BindConstantBuffer(ID3D11DeviceContext* context, const std::string& name, UINT slot, bool forVertexShader, bool forPixelShader) {
+    auto it = m_constantBuffers.find(name);
+    if (it == m_constantBuffers.end()) {
+        throw std::runtime_error("Constant buffer '" + name + "' not found");
+    }
+
+    ID3D11Buffer* buffer = it->second.Get();
+    if (forVertexShader) {
+        context->VSSetConstantBuffers(slot, 1, &buffer);
+    }
+    if (forPixelShader) {
+        context->PSSetConstantBuffers(slot, 1, &buffer);
+    }
 }

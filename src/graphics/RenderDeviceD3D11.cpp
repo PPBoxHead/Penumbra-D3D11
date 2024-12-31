@@ -18,7 +18,14 @@ RenderDeviceD3D11::RenderDeviceD3D11(int t_window_width, int t_window_height, HW
 }
 
 RenderDeviceD3D11::~RenderDeviceD3D11() {
+    if (m_deviceContext) {
+        m_deviceContext->ClearState(); // Break bindings to avoid reference cycles
+    }
 
+    Microsoft::WRL::ComPtr<ID3D11Debug> debugDevice;
+    if (SUCCEEDED(m_device->QueryInterface(IID_PPV_ARGS(&debugDevice)))) {
+        debugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+    }
 }
 
 ID3D11Device* RenderDeviceD3D11::GetDevice() {
@@ -39,7 +46,7 @@ void RenderDeviceD3D11::InitD3D11(HWND t_hwnd) {
     CreateRenderPipeline();
     SetupViewport();
 
-    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "DirectX 11 initialization complete.");
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "DirectX 11 initialization complete.");
 }
 
 // Creates the DXGI Factory
@@ -111,13 +118,13 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
     const int error = wcstombs_s(&stringLength, m_videoCardDescription, 128, adapterDesc.Description, 128);
     if (error != 0)
     {
-        ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "Failed to convert video card description");
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Failed to convert video card description");
     }
 
 #if defined(_DEBUG)
-    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Video Card dedicated memory - VRAM: ", m_videoCardDedicatedMemory, "MB");
-    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Video Card shared system memory - RAM: ", m_videoCardSharedSystemMemory, "MB");
-    ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_INFO, "Video Card name - Vendor: ", m_videoCardDescription);
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card dedicated memory - VRAM: ", m_videoCardDedicatedMemory, "MB");
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card shared system memory - RAM: ", m_videoCardSharedSystemMemory, "MB");
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card name - Vendor: ", m_videoCardDescription);
 #endif
 
     // Release the display mode list.
@@ -197,7 +204,7 @@ void RenderDeviceD3D11::CreateSwapChain(HWND t_hwnd) {
     swapChainDesc.OutputWindow = t_hwnd;
 
     swapChainDesc.SampleDesc.Count = 1; // No MSAA
-    swapChainDesc.SampleDesc.Quality = 0; 
+    swapChainDesc.SampleDesc.Quality = 0;
 
     swapChainDesc.Windowed = TRUE;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -311,7 +318,7 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
 
     // Bind Render Target and Depth-Stencil Views
     if (!m_renderTargetView || !m_depthStencilView) {
-        ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "Render target or depth stencil view is uninitialized.");
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Render target or depth stencil view is uninitialized.");
         return;
     }
     m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
@@ -347,7 +354,7 @@ void RenderDeviceD3D11::LogHRESULTError(HRESULT hr, const char* message) {
 	char buffer[512];
 	FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		nullptr, hr, 0, buffer, sizeof(buffer), nullptr);
-	ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, message, buffer);
+	ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, message, buffer);
 
     exit(EXIT_FAILURE);
 }

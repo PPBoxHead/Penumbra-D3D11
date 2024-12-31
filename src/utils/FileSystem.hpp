@@ -6,7 +6,7 @@
 class FileSystem {
 	public:
 		static std::string getWorkingDirectory();
-		void setWorkingDirectory(const std::string& dirPath);
+		static void setWorkingDirectory(const std::string& dirPath);
 
 		static bool createDirectory(const std::string& dirPath);
 		static bool createDirectories(const std::string& dirPath);
@@ -25,8 +25,8 @@ class FileSystem {
 		static std::string fileGetName(const std::string& filePath);
 
 		static std::string getFileBuffer(const std::string& filePath);
-		static const char* getFileBufferC(const std::string& filePath);
 
+		static void openFileExplorer(const std::string& path = ".");
 		static std::string toLowerCase(const std::string& str);
 		static std::string toUpperCase(const std::string& str);
 };

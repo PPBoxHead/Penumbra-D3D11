@@ -4,19 +4,24 @@
 
 #include <d3dcompiler.h>
 
-#include "Graphics/RenderDeviceD3D11.hpp"
-#include "Graphics/VertexFormat.h"
-#include "Utils/ConsoleLogger.hpp"
+#include "graphics/RenderDeviceD3D11.hpp"
+#include "graphics/VertexFormat.h"
+
+#include "utils/ConsoleLogger.hpp"
+#include "utils/FileSystem.hpp"
 
 using namespace Microsoft::WRL;
 
+
 int main() {
+	FileSystem::setWorkingDirectory("resources");
+
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	GLFWwindow* window = glfwCreateWindow(800, 600, "Penumbra-D3D11 Window :D", nullptr, nullptr);
 	if (window == nullptr) {
-		ConsoleLogger::consolePrint(ConsoleLogger::LogType::C_ERROR, "Unable to create GLFW window");
+		ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Unable to create GLFW window");
 		glfwTerminate();
 		exit(EXIT_FAILURE);
 	}
@@ -93,7 +98,7 @@ int main() {
 	// Here we compile and create the vertex shader
 	ComPtr<ID3D11VertexShader> vertex_shader;
 	{
-		ID3DBlob* vertexBlob = nullptr;
+		ComPtr<ID3DBlob> vertexBlob = nullptr;
 		D3DCompile(
 			hlsl,
 			strlen(hlsl),
@@ -119,7 +124,7 @@ int main() {
 	// And here we compile and create the pixel shader
 	ComPtr<ID3D11PixelShader> pixel_shader;
 	{
-		ID3DBlob* pixelBlob = nullptr;
+		ComPtr<ID3DBlob> pixelBlob = nullptr;
 		D3DCompile(
 			hlsl,
 			strlen(hlsl),
