@@ -23,6 +23,7 @@ RenderDeviceD3D11* renderDevice = nullptr;
 #include <array>
 #include <cstring>
 
+char processorName[128] = {};
 void GetProcessorName(char* processorName) {
 	int CPUInfo[4] = { -1 };
 	unsigned int nExIds, i = 0;
@@ -60,7 +61,6 @@ void GetProcessorName(char* processorName) {
 std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
 float deltaTime = 0.0f;
 float fps = 0.0f;
-char processorName[128] = {};
 
 // Update FPS
 void UpdateFPS() {
@@ -93,6 +93,29 @@ void RenderImGuiPerformance() {
 	}
 	if (ImGui::CollapsingHeader("CPU Data")) {
 		ImGui::Text("CPU Vendor: %s", processorName);
+		// Memory status structure
+		MEMORYSTATUSEX statex;
+		statex.dwLength = sizeof(statex);
+
+		// Get memory status
+		if (GlobalMemoryStatusEx(&statex)) {
+			// Total physical memory in MB
+			size_t totalRAM = statex.ullTotalPhys / 1024 / 1024;
+
+			// Available physical memory in MB
+			size_t availableRAM = statex.ullAvailPhys / 1024 / 1024;
+
+			// Used RAM in MB
+			size_t usedRAM = totalRAM - availableRAM;
+
+			// Render RAM usage with ImGui
+			ImGui::Text("Total RAM: %zu MB", totalRAM);
+			ImGui::Text("Available RAM: %zu MB", availableRAM);
+			ImGui::Text("Used RAM: %zu MB", usedRAM);
+		}
+		else {
+			ImGui::Text("Failed to retrieve memory status.");
+		}
 	}
 	ImGui::End();
 }
