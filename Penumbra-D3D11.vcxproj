@@ -147,7 +147,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Graphics\RenderDeviceD3D11.cpp" />
+    <ClCompile Include="src\graphics\RenderDeviceD3D11.cpp" />
     <ClCompile Include="src\graphics\Shader.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\utils\FileSystem.cpp" />
@@ -160,10 +160,10 @@
     <ClCompile Include="third-party\include\imgui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Graphics\RenderDeviceD3D11.h" />
+    <ClInclude Include="src\graphics\RenderDeviceD3D11.h" />
     <ClInclude Include="src\graphics\Shader.h" />
-    <ClInclude Include="src\Graphics\VertexFormat.h" />
-    <ClInclude Include="src\Utils\ConsoleLogger.h" />
+    <ClInclude Include="src\graphics\VertexFormat.h" />
+    <ClInclude Include="src\utils\ConsoleLogger.h" />
     <ClInclude Include="src\utils\FileSystem.h" />
   </ItemGroup>
   <ItemGroup>

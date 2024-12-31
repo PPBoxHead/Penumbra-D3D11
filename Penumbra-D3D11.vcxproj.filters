@@ -24,7 +24,7 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\RenderDeviceD3D11.cpp">
+    <ClCompile Include="src\graphics\RenderDeviceD3D11.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\graphics\Shader.cpp">
@@ -56,13 +56,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Utils\ConsoleLogger.h">
+    <ClInclude Include="src\utils\ConsoleLogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Graphics\RenderDeviceD3D11.h">
+    <ClInclude Include="src\graphics\RenderDeviceD3D11.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Graphics\VertexFormat.h">
+    <ClInclude Include="src\graphics\VertexFormat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\graphics\Shader.h">
