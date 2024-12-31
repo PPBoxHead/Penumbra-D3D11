@@ -38,7 +38,9 @@ void UpdateFPS() {
 
 // Render ImGui FPS Counter
 void RenderImGuiPerformance() {
-	ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize);
+	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
+	ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
+	ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 	ImGui::Text("FPS: %.1f", fps); // Display the FPS with one decimal point
 	ImGui::Text("Frame Time: %.3f ms", deltaTime * 1000.0f); // Display frame time in milliseconds
 	ImGui::Text("Graphics Adapter: %s", renderDevice->videoCardDescription);
