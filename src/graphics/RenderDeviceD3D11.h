@@ -3,7 +3,8 @@
 
 #include <d3d11.h>
 #include <DirectXMath.h>
-#include <dxgi.h>
+//#include <dxgi.h>
+#include <dxgi1_4.h>
 #include <wrl/client.h> // For ComPtr
 #include <array>
 
@@ -15,6 +16,7 @@ class RenderDeviceD3D11 {
 
 		ID3D11Device* GetDevice();
 		ID3D11DeviceContext* GetDeviceContext();
+		void GetVRAMInfo();
 
 		// Frame lifecycle
 		void StartFrame(const std::array<float, 4>& clearColor);
@@ -24,7 +26,8 @@ class RenderDeviceD3D11 {
 		int videoCardDedicatedMemory;
 		int videoCardSharedSystemMemory;
 		char videoCardDescription[128];
-		
+		DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = {};
+
 	private:
 		// This function calls all the next steps declarated in this header
 		void InitD3D11(HWND t_hwnd);
@@ -50,8 +53,8 @@ class RenderDeviceD3D11 {
 		int m_windowWidth;
 		int m_windowHeight;
 
-		Microsoft::WRL::ComPtr<IDXGIFactory> m_factory;
-		Microsoft::WRL::ComPtr<IDXGIAdapter> m_adapter;
+		Microsoft::WRL::ComPtr<IDXGIFactory4> m_factory;
+		Microsoft::WRL::ComPtr<IDXGIAdapter3> m_adapter;
 		Microsoft::WRL::ComPtr<IDXGIOutput> m_adapterOutput;
 		unsigned m_numerator = 0;
 		unsigned m_denominator = 1;

@@ -49,15 +49,22 @@ void RenderDeviceD3D11::InitD3D11(HWND t_hwnd) {
     ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "DirectX 11 initialization complete.");
 }
 
+void RenderDeviceD3D11::GetVRAMInfo() {
+    HRESULT result = m_adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemoryInfo);
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to query video memory information.");
+}
+}
+
 // Creates the DXGI Factory
 void RenderDeviceD3D11::CreateFactory() {
-    HRESULT result = CreateDXGIFactory(IID_PPV_ARGS(&m_factory));
+    HRESULT result = CreateDXGIFactory1(__uuidof(IDXGIFactory4), (void**)&m_factory);
     if (FAILED(result))
         LogHRESULTError(result, "Failed to create DXGI Factory: ");
 }
 // Enumerate the hardware adapter
 void RenderDeviceD3D11::SetupHardwareAdapter() {
-    HRESULT result = m_factory->EnumAdapters(0, &m_adapter);
+    HRESULT result = m_factory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter**>(m_adapter.GetAddressOf()));
     if (FAILED(result))
         LogHRESULTError(result, "Failed to enumerate adapters: ");
     // Enumerate the primary adapter output (monitor).

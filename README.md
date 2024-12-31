@@ -18,7 +18,7 @@ At the moment of writing this *(2024/12/25)*, there's not almost any feature to 
 
 ## Build and Run
 
-The project is intended to be used on any Windows OS that supports DirectX 11, **There's not any support to build on platforms out of Windows.**
+The project is intended to be used on Windows 10 or later that supports DirectX 11, **There's not any support to build on platforms out of Windows.**
 
 The only requirements to be able to build is have `Visual Studio 2022`, you download the repository project, open the `Penumbra-D3D11.sln` and hit `F5`.
 
