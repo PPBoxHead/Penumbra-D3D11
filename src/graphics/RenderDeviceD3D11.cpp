@@ -122,9 +122,9 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
     }
 
 #if defined(_DEBUG)
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card dedicated memory - VRAM: ", m_videoCardDedicatedMemory, "MB");
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card shared system memory - RAM: ", m_videoCardSharedSystemMemory, "MB");
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card name - Vendor: ", m_videoCardDescription);
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card dedicated memory - VRAM: ", videoCardDedicatedMemory, "MB");
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card shared system memory - RAM: ", videoCardSharedSystemMemory, "MB");
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card name - Vendor: ", videoCardDescription);
 #endif
 
     // Release the display mode list.

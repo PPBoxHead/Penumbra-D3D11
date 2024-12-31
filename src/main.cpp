@@ -15,8 +15,8 @@
 #include "utils/ConsoleLogger.h"
 #include "utils/FileSystem.h"
 
-using namespace Microsoft::WRL;
 
+using namespace Microsoft::WRL;
 
 RenderDeviceD3D11* renderDevice = nullptr;
 

@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>third-party\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)third-party/include\imgui\backends;$(ProjectDir)third-party/include\imgui;$(ProjectDir)third-party/include;$(IncludePath)</IncludePath>
     <LibraryPath>third-party\lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)\bin\$(ProjectName)\$(Configuration)-$(Platform)\exe_output</OutDir>
     <IntDir>$(SolutionDir)\bin\$(ProjectName)\$(Configuration)-$(Platform)\exe_intermediates</IntDir>
