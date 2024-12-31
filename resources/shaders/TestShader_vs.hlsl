@@ -15,7 +15,7 @@ struct VertexOut {
 };
 
 VertexOut vs_main(VertexIn input) {
-    float3 inColor = input.color;
+    float4 inColor = input.color;
     float3 inPos = input.position;
     float4 position = mul(float4(inPos, 1.0), mul(modelMatrix, mul(viewMatrix, projectionMatrix)));
     

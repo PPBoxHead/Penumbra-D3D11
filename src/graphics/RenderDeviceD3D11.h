@@ -20,7 +20,10 @@ class RenderDeviceD3D11 {
 		void StartFrame(const std::array<float, 4>& clearColor);
 		void PresentFrame();
 
-		bool is_vsync_enabled = false;
+		bool is_vsync_enabled = true;
+		int videoCardDedicatedMemory;
+		int videoCardSharedSystemMemory;
+		char videoCardDescription[128];
 		
 	private:
 		// This function calls all the next steps declarated in this header
@@ -43,9 +46,6 @@ class RenderDeviceD3D11 {
 		void LogHRESULTError(HRESULT hr, const char* message);
 
 	private:
-		int m_videoCardDedicatedMemory;
-		int m_videoCardSharedSystemMemory;
-		char m_videoCardDescription[128];
 
 		int m_windowWidth;
 		int m_windowHeight;

@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\Third-Party Files">
+      <UniqueIdentifier>{92322818-5a54-4ca0-ae8a-455c17631a5e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Third-Party Files\Imgui">
+      <UniqueIdentifier>{9839d804-8d10-4beb-b4ed-b92e2d262b31}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -27,21 +33,42 @@
     <ClCompile Include="src\utils\FileSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="third-party\include\imgui\imgui.cpp">
+      <Filter>Source Files\Third-Party Files\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="third-party\include\imgui\imgui_demo.cpp">
+      <Filter>Source Files\Third-Party Files\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="third-party\include\imgui\imgui_draw.cpp">
+      <Filter>Source Files\Third-Party Files\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="third-party\include\imgui\imgui_tables.cpp">
+      <Filter>Source Files\Third-Party Files\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="third-party\include\imgui\imgui_widgets.cpp">
+      <Filter>Source Files\Third-Party Files\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="third-party\include\imgui\backends\imgui_impl_dx11.cpp">
+      <Filter>Source Files\Third-Party Files\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="third-party\include\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>Source Files\Third-Party Files\Imgui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Utils\ConsoleLogger.hpp">
+    <ClInclude Include="src\Utils\ConsoleLogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Graphics\RenderDeviceD3D11.hpp">
+    <ClInclude Include="src\Graphics\RenderDeviceD3D11.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Graphics\VertexFormat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\graphics\Shader.hpp">
+    <ClInclude Include="src\graphics\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\utils\FileSystem.hpp">
+    <ClInclude Include="src\utils\FileSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

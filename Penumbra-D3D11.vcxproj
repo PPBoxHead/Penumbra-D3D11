@@ -79,7 +79,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)\bin\$(ProjectName)\$(Configuration)-$(Platform)\exe_output</OutDir>
     <IntDir>$(SolutionDir)\bin\$(ProjectName)\$(Configuration)-$(Platform)\exe_intermediates</IntDir>
-    <IncludePath>third-party\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)third-party/include\imgui\backends;$(ProjectDir)third-party/include\imgui;$(ProjectDir)third-party/include;$(IncludePath)</IncludePath>
     <LibraryPath>third-party\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -155,13 +155,20 @@
     <ClCompile Include="src\graphics\Shader.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\utils\FileSystem.cpp" />
+    <ClCompile Include="third-party\include\imgui\backends\imgui_impl_dx11.cpp" />
+    <ClCompile Include="third-party\include\imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="third-party\include\imgui\imgui.cpp" />
+    <ClCompile Include="third-party\include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="third-party\include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="third-party\include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="third-party\include\imgui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Graphics\RenderDeviceD3D11.hpp" />
-    <ClInclude Include="src\graphics\Shader.hpp" />
+    <ClInclude Include="src\Graphics\RenderDeviceD3D11.h" />
+    <ClInclude Include="src\graphics\Shader.h" />
     <ClInclude Include="src\Graphics\VertexFormat.h" />
-    <ClInclude Include="src\Utils\ConsoleLogger.hpp" />
-    <ClInclude Include="src\utils\FileSystem.hpp" />
+    <ClInclude Include="src\Utils\ConsoleLogger.h" />
+    <ClInclude Include="src\utils\FileSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="resources\shaders\TestShader_ps.hlsl">

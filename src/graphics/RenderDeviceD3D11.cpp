@@ -1,6 +1,6 @@
-#include "RenderDeviceD3D11.hpp"
+#include "RenderDeviceD3D11.h"
 
-#include "../Utils/ConsoleLogger.hpp"
+#include "../Utils/ConsoleLogger.h"
 
 
 // This line indicates to hybrid graphics system to prefer the discrete part by default
@@ -109,13 +109,13 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
 
     // Store the dedicated video card memory in megabytes,
     // This is mostly for debug information.
-    m_videoCardDedicatedMemory = int(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
+    videoCardDedicatedMemory = int(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
     // Store the shared system video card memory in megabytes,
     // This is mostly for debug information.
-    m_videoCardSharedSystemMemory = int(adapterDesc.SharedSystemMemory / 1024 / 1024);
+    videoCardSharedSystemMemory = int(adapterDesc.SharedSystemMemory / 1024 / 1024);
     size_t stringLength;
     // Convert the name of the video card to a character array and store it.
-    const int error = wcstombs_s(&stringLength, m_videoCardDescription, 128, adapterDesc.Description, 128);
+    const int error = wcstombs_s(&stringLength, videoCardDescription, 128, adapterDesc.Description, 128);
     if (error != 0)
     {
         ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Failed to convert video card description");

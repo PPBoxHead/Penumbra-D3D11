@@ -2,15 +2,50 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include <chrono>
 #include <d3dcompiler.h>
 
-#include "graphics/RenderDeviceD3D11.hpp"
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_glfw.h>
+#include <imgui/backends/imgui_impl_dx11.h>
+
+#include "graphics/RenderDeviceD3D11.h"
 #include "graphics/VertexFormat.h"
 
-#include "utils/ConsoleLogger.hpp"
-#include "utils/FileSystem.hpp"
+#include "utils/ConsoleLogger.h"
+#include "utils/FileSystem.h"
 
 using namespace Microsoft::WRL;
+
+
+RenderDeviceD3D11* renderDevice = nullptr;
+
+// Variables for FPS tracking
+std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
+float deltaTime = 0.0f;
+float fps = 0.0f;
+
+// Update FPS
+void UpdateFPS() {
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+	lastTime = currentTime;
+
+	if (deltaTime > 0) {
+		fps = 1.0f / deltaTime;
+	}
+}
+
+// Render ImGui FPS Counter
+void RenderImGuiPerformance() {
+	ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize);
+	ImGui::Text("FPS: %.1f", fps); // Display the FPS with one decimal point
+	ImGui::Text("Frame Time: %.3f ms", deltaTime * 1000.0f); // Display frame time in milliseconds
+	ImGui::Text("Graphics Adapter: %s", renderDevice->videoCardDescription);
+	ImGui::Text("Dedicated VRAM: %i MB", renderDevice->videoCardDedicatedMemory);
+	ImGui::Text("Shared RAM: %i MB", renderDevice->videoCardSharedSystemMemory);
+	ImGui::End();
+}
 
 
 int main() {
@@ -19,13 +54,13 @@ int main() {
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	GLFWwindow* window = glfwCreateWindow(800, 600, "Penumbra-D3D11 Window :D", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(1280, 720, "Penumbra-D3D11 Window :D", nullptr, nullptr);
 	if (window == nullptr) {
 		ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Unable to create GLFW window");
 		glfwTerminate();
 		exit(EXIT_FAILURE);
 	}
-	RenderDeviceD3D11* renderDevice = new RenderDeviceD3D11(800, 600, glfwGetWin32Window(window));
+	renderDevice = new RenderDeviceD3D11(1280, 720, glfwGetWin32Window(window));
 
 	/// How to render a colored triangle in D3D11:
 	ID3D11Device* device = renderDevice->GetDevice(); // This is to call the creation of buffers with device->CreateBuffer() call
@@ -61,8 +96,6 @@ int main() {
 	indexData.pSysMem = indices;
 	// Create the index buffer
 	device->CreateBuffer(&indexBufferDesc, &indexData, &indexBuffer);
-
-
 
 		/// Now let's create and compile Vertex and Pixel shaders
 	const char* hlsl = R"(
@@ -143,10 +176,32 @@ int main() {
 		pixelBlob->Release();
 	}
 
+		/// Let's try initialize ImGui
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
+
+	ImGui::StyleColorsDark();
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplGlfw_InitForOther(window, true);
+	ImGui_ImplDX11_Init(device, deviceContext);
+
 	std::array<float, 4> clearColor = { 0.1f, 0.2f, 0.3f, 1.0f };
 	// Main Loop
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
+
+		UpdateFPS();
+
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		RenderImGuiPerformance();
 
 		// Clear the render target and depth/stencil view
 		renderDevice->StartFrame(clearColor);
@@ -172,9 +227,17 @@ int main() {
 		// Draw the triangle :D
 		deviceContext->DrawIndexed(3, 0, 0);
 
+
+		ImGui::Render();
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
 		// Present the back buffer to the screen
 		renderDevice->PresentFrame();
 	}
+
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
