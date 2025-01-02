@@ -2,6 +2,7 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include <numeric>
 #include <chrono>
 #include <d3dcompiler.h>
 
@@ -58,18 +59,24 @@ void GetProcessorName(char* processorName) {
 	strcpy_s(processorName, 128, brand);
 }
 
-// Variables for FPS tracking
-std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
-float deltaTime = 0.0f;
-float fps = 0.0f;
-// Update FPS
-void UpdateFPS() {
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
-	lastTime = currentTime;
+std::chrono::high_resolution_clock::time_point m_LastFrameTime = std::chrono::high_resolution_clock::now();
+double m_TimeAccumulator = 0.0;
+double m_Delta = 0.0;
+double m_AvgFPS = 0.0;
+std::vector<double> m_FrameTimes;
 
-	if (deltaTime > 0) {
-		fps = 1.0f / deltaTime;
+
+void UpdateFPS() {
+	auto currentFrameTime = std::chrono::high_resolution_clock::now();
+	m_Delta = std::chrono::duration<double>(currentFrameTime - m_LastFrameTime).count();
+	m_LastFrameTime = currentFrameTime;
+	m_TimeAccumulator += m_Delta;
+	m_FrameTimes.push_back(1.0 / m_Delta);
+
+	if (m_TimeAccumulator >= 1.0) {
+		m_AvgFPS = std::accumulate(m_FrameTimes.begin(), m_FrameTimes.end(), 0.0) / m_FrameTimes.size();
+		m_FrameTimes.clear();
+		m_TimeAccumulator -= 1.0;
 	}
 }
 
@@ -81,17 +88,17 @@ void RenderImGuiPerformance() {
 
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
 	ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
-	ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-	ImGui::Text("FPS: %.1f", fps); // Display the FPS with one decimal point
-	ImGui::Text("Frame Time: %.3f ms", deltaTime * 1000.0f); // Display frame time in milliseconds
-	if (ImGui::CollapsingHeader("GPU Data")) {
+	ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiTreeNodeFlags_DefaultOpen);
+	ImGui::Text("Average FPS: %.2f", m_AvgFPS); // Display the FPS with one decimal point
+	ImGui::Text("Last Delta: %.4f ms", m_Delta * 1000.0f); // Display frame time in milliseconds
+	if (ImGui::CollapsingHeader("GPU Data", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("GPU Vendor: %s", renderDevice->videoCardDescription);
 		ImGui::Text("Graphics Adapter Dedicated VRAM: %i MB", renderDevice->videoCardDedicatedMemory);
 		ImGui::Text("Graphics Adapter Shared RAM: %i MB", renderDevice->videoCardSharedSystemMemory);
 		ImGui::Text("Used VRAM: %zu MB", usedVRAM);
 		ImGui::Separator();
 	}
-	if (ImGui::CollapsingHeader("CPU Data")) {
+	if (ImGui::CollapsingHeader("CPU Data", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("CPU Vendor: %s", processorName);
 		// Memory status structure
 		MEMORYSTATUSEX statex;
