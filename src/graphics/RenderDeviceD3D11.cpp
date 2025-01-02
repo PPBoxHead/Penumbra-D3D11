@@ -36,6 +36,13 @@ ID3D11DeviceContext* RenderDeviceD3D11::GetDeviceContext() {
     return m_deviceContext.Get();
 }
 
+void RenderDeviceD3D11::GetVRAMInfo() {
+    HRESULT result = m_adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemoryInfo);
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to query video memory information.");
+    }
+}
+
 // This function calls all the next steps declarated in this header
 void RenderDeviceD3D11::InitD3D11(HWND t_hwnd) {
     CreateFactory();
@@ -47,13 +54,6 @@ void RenderDeviceD3D11::InitD3D11(HWND t_hwnd) {
     SetupViewport();
 
     ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "DirectX 11 initialization complete.");
-}
-
-void RenderDeviceD3D11::GetVRAMInfo() {
-    HRESULT result = m_adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemoryInfo);
-    if (FAILED(result)) {
-        LogHRESULTError(result, "Failed to query video memory information.");
-}
 }
 
 // Creates the DXGI Factory

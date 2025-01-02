@@ -11,6 +11,7 @@
 
 #include "graphics/RenderDeviceD3D11.h"
 #include "graphics/VertexFormat.h"
+#include "graphics/Shader.h"
 
 #include "utils/ConsoleLogger.h"
 #include "utils/FileSystem.h"
@@ -172,84 +173,34 @@ int main() {
 	// Create the index buffer
 	device->CreateBuffer(&indexBufferDesc, &indexData, &indexBuffer);
 
-		/// Now let's create and compile Vertex and Pixel shaders
-	const char* hlsl = R"(
-		struct VertexIn {
-			float3 position : POS;
-			float4 color : COL;
-		};
+		/// Let's try create our new shader class thing
+	struct ConstantBufferData {
+		DirectX::XMMATRIX worldMatrix;
+	};
 
-		struct VertexOut {
-			float4 position : SV_POSITION;
-			float4 color : COL;
-		};
-
-		VertexOut vs_main(VertexIn input) {
-			VertexOut output;
-			output.position = float4(input.position, 1.0);
-			output.color = input.color;
-			return output;
-		}
-
-		float4 ps_main(VertexOut input) : SV_TARGET {
-			return input.color;
-		}
-	)";
-
-	UINT compile_flags = D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR |
-		D3DCOMPILE_ENABLE_STRICTNESS |
-		D3DCOMPILE_WARNINGS_ARE_ERRORS;
-	compile_flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+	// Example input layout (this should match your vertex structure)
+	D3D11_INPUT_ELEMENT_DESC layout[] = {
+		{"POS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+	UINT numElements = ARRAYSIZE(layout);
 
 
-	ComPtr<ID3D11InputLayout> inputLayout;
-	// Here we compile and create the vertex shader
-	ComPtr<ID3D11VertexShader> vertex_shader;
-	{
-		ComPtr<ID3DBlob> vertexBlob = nullptr;
-		D3DCompile(
-			hlsl,
-			strlen(hlsl),
-			nullptr,
-			nullptr,
-			D3D_COMPILE_STANDARD_FILE_INCLUDE,
-			"vs_main",
-			"vs_5_0",
-			compile_flags,
-			0,
-			&vertexBlob,
-			nullptr
-		);
-		device->CreateVertexShader(vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), nullptr, &vertex_shader);
-		D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
-			{"POS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-			{"COL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		};
+	SHADER_DESC shaderDesc = {};
+	shaderDesc.vertexShaderPath = L"shaders/TestShader_vs.hlsl";
+	shaderDesc.pixelShaderPath = L"shaders/TestShader_ps.hlsl";
+	
+	Shader shaderTest;
+	shaderTest.Initialize(device, shaderDesc, layout, numElements);
 
-		device->CreateInputLayout(inputElementDesc, ARRAYSIZE(inputElementDesc), vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), &inputLayout);
-	}
+	DirectX::XMMATRIX transformMatrix = DirectX::XMMatrixIdentity();
 
-	// And here we compile and create the pixel shader
-	ComPtr<ID3D11PixelShader> pixel_shader;
-	{
-		ComPtr<ID3DBlob> pixelBlob = nullptr;
-		D3DCompile(
-			hlsl,
-			strlen(hlsl),
-			nullptr,
-			nullptr,
-			D3D_COMPILE_STANDARD_FILE_INCLUDE,
-			"ps_main",
-			"ps_5_0",
-			compile_flags,
-			0,
-			&pixelBlob,
-			nullptr
-		);
-		device->CreatePixelShader(pixelBlob->GetBufferPointer(), pixelBlob->GetBufferSize(), nullptr, &pixel_shader);
+	CONSTANT_BUFFER_DESC constantBufferDesc = {};
+	constantBufferDesc.bufferSize = sizeof(ConstantBufferData);
+	constantBufferDesc.usage = D3D11_USAGE_DEFAULT;
 
-		pixelBlob->Release();
-	}
+
+	//shaderTest.CreateConstantBuffer(device, "MatrixBuffer", constantBufferDesc);
 
 		/// Let's try initialize ImGui
 	// Setup Dear ImGui context
@@ -282,14 +233,9 @@ int main() {
 		// Clear the render target and depth/stencil view
 		renderDevice->StartFrame(clearColor);
 
+		shaderTest.SetShaders(deviceContext);
+
 			/// We render a triangle here lol
-		// Set the input layout
-		deviceContext->IASetInputLayout(inputLayout.Get());
-
-		// Bind the shaders
-		deviceContext->VSSetShader(vertex_shader.Get(), nullptr, 0);
-		deviceContext->PSSetShader(pixel_shader.Get(), nullptr, 0);
-
 		UINT stride = sizeof(ColoredVertexData);
 		UINT offset = 0;
 		//Bind the vertex buffer
