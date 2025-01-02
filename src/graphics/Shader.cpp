@@ -14,8 +14,13 @@ bool Shader::Initialize(ID3D11Device* device, const SHADER_DESC& desc, const D3D
         CompileShader(device, desc.vertexShaderPath, desc.vertexEntryPoint, desc.vertexTarget, blob) &&
         CreateShader(device, blob, m_vertexShader)) {
         // Create input layout inside the Initialize method
-        HRESULT result = device->CreateInputLayout(layout, numElements, blob->GetBufferPointer(),
-            blob->GetBufferSize(), m_inputLayout.GetAddressOf());
+        HRESULT result = device->CreateInputLayout(
+            layout,
+            numElements,
+            blob->GetBufferPointer(),
+            blob->GetBufferSize(),
+            m_inputLayout.GetAddressOf()
+        );
 
         if (FAILED(result)) {
             ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Failed to create input layout.");
@@ -56,9 +61,22 @@ bool Shader::CompileShader(ID3D11Device* device, const std::optional<std::wstrin
     ComPtr<ID3DBlob>& blob) {
     if (!filePath) return true;
 
+    UINT compile_flags = D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR |
+        D3DCOMPILE_ENABLE_STRICTNESS;
+    compile_flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+
     ComPtr<ID3DBlob> errorBlob;
-    HRESULT result = D3DCompileFromFile(filePath->c_str(), nullptr, nullptr, entryPoint.c_str(),
-        target.c_str(), D3DCOMPILE_ENABLE_STRICTNESS, 0, &blob, &errorBlob);
+    HRESULT result = D3DCompileFromFile(
+        filePath->c_str(),
+        nullptr,
+        nullptr,
+        entryPoint.c_str(),
+        target.c_str(),
+        compile_flags,
+        0,
+        &blob,
+        &errorBlob
+    );
 
     if (FAILED(result)) {
         if (errorBlob) {
