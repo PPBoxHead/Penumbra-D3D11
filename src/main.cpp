@@ -87,7 +87,7 @@ void RenderImGuiPerformance() {
 	size_t usedVRAM = renderDevice->videoMemoryInfo.CurrentUsage / 1024 / 1024;  // In MB
 
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
-	ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
+	ImGui::SetNextWindowBgAlpha(1.0f); // Dark background
 	ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiTreeNodeFlags_DefaultOpen);
 	ImGui::Text("Average FPS: %.2f", m_AvgFPS); // Display the FPS with one decimal point
 	ImGui::Text("Last Delta: %.4f ms", m_Delta * 1000.0f); // Display frame time in milliseconds
