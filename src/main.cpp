@@ -144,9 +144,10 @@ int main() {
 		/// First create the Vertex Buffer
 	// Declare the vertices and their data, in this case, vertex position and vertex colors
 	ColoredVertexData vertices[] = {
-		{ DirectX::XMFLOAT3(0.0f, 0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) }, // Top (Magenta)
-		{ DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f) }, // Bottom Right (Cyan)
-		{ DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) }  // Bottom Left (Yellow)
+		{ DirectX::XMFLOAT3(-0.5f,  0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },  // Top-left
+		{ DirectX::XMFLOAT3(0.5f,  0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },  // Top-right
+		{ DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },  // Bottom-left
+		{ DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) }   // Bottom-right
 	};
 	// Now let's make the buffers for the triangle
 	ComPtr<ID3D11Buffer> vertexBuffer;
@@ -161,12 +162,15 @@ int main() {
 	device->CreateBuffer(&vertexBufferDesc, &vertexData, &vertexBuffer);
 		/// Now let's create the index buffer
 	// We declare the indices here
-	uint32_t indices[] = {0, 1, 2};
+	uint32_t indices[] = {
+		0, 1, 2,
+		1, 3, 2 
+	};
 	// Now let's make the buffers for the indices
 	ComPtr<ID3D11Buffer> indexBuffer;
 	D3D11_BUFFER_DESC indexBufferDesc = {};
 	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(unsigned) * 3;
+	indexBufferDesc.ByteWidth = sizeof(indices);
 	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	D3D11_SUBRESOURCE_DATA indexData;
 	indexData.pSysMem = indices;
@@ -194,13 +198,6 @@ int main() {
 	shaderTest.Initialize(device, shaderDesc, layout, numElements);
 
 	DirectX::XMMATRIX transformMatrix = DirectX::XMMatrixIdentity();
-
-	CONSTANT_BUFFER_DESC constantBufferDesc = {};
-	constantBufferDesc.bufferSize = sizeof(ConstantBufferData);
-	constantBufferDesc.usage = D3D11_USAGE_DEFAULT;
-
-
-	//shaderTest.CreateConstantBuffer(device, "MatrixBuffer", constantBufferDesc);
 
 		/// Let's try initialize ImGui
 	// Setup Dear ImGui context
@@ -233,9 +230,10 @@ int main() {
 		// Clear the render target and depth/stencil view
 		renderDevice->StartFrame(clearColor);
 
-		shaderTest.SetShaders(deviceContext);
 
 			/// We render a triangle here lol
+		shaderTest.SetShaders(deviceContext);
+
 		UINT stride = sizeof(ColoredVertexData);
 		UINT offset = 0;
 		//Bind the vertex buffer
@@ -247,7 +245,7 @@ int main() {
 		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		
 		// Draw the triangle :D
-		deviceContext->DrawIndexed(3, 0, 0);
+		deviceContext->DrawIndexed(6, 0, 0);
 
 
 		ImGui::Render();
