@@ -177,11 +177,6 @@ int main() {
 	// Create the index buffer
 	device->CreateBuffer(&indexBufferDesc, &indexData, &indexBuffer);
 
-		/// Let's try create our new shader class thing
-	struct ConstantBufferData {
-		DirectX::XMMATRIX worldMatrix;
-	};
-
 	// Example input layout (this should match your vertex structure)
 	D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{"POS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
@@ -198,6 +193,11 @@ int main() {
 	shaderTest.Initialize(device, shaderDesc, layout, numElements);
 
 	DirectX::XMMATRIX transformMatrix = DirectX::XMMatrixIdentity();
+
+	CONSTANT_BUFFER_DESC cBufferDesc = {};
+	cBufferDesc.bufferSize = sizeof(transformMatrix);
+
+	shaderTest.CreateConstantBuffer(device, "MatrixBuffer", cBufferDesc);
 
 		/// Let's try initialize ImGui
 	// Setup Dear ImGui context

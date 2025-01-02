@@ -22,7 +22,7 @@ class RenderDeviceD3D11 {
 		void StartFrame(const std::array<float, 4>& clearColor);
 		void PresentFrame();
 
-		bool is_vsync_enabled = true;
+		bool is_vsync_enabled = false;
 		int videoCardDedicatedMemory;
 		int videoCardSharedSystemMemory;
 		char videoCardDescription[128];
