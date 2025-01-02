@@ -62,7 +62,6 @@ void GetProcessorName(char* processorName) {
 std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
 float deltaTime = 0.0f;
 float fps = 0.0f;
-
 // Update FPS
 void UpdateFPS() {
 	auto currentTime = std::chrono::high_resolution_clock::now();
@@ -136,6 +135,9 @@ int main() {
 		glfwTerminate();
 		exit(EXIT_FAILURE);
 	}
+	// Disable V-Sync in GLFW
+	glfwSwapInterval(0); // This sets the swap interval to 0, disabling V-Sync
+	
 	renderDevice = new RenderDeviceD3D11(1280, 720, glfwGetWin32Window(window));
 
 	/// How to render a colored triangle in D3D11:
