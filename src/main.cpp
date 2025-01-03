@@ -24,6 +24,7 @@ RenderDeviceD3D11* renderDevice = nullptr;
 
 #include <array>
 #include <cstring>
+#include <psapi.h>
 
 char processorName[128] = {};
 void GetProcessorName(char* processorName) {
@@ -114,19 +115,48 @@ void RenderImGuiPerformance() {
 
 			// Used RAM in MB
 			size_t usedRAM = totalRAM - availableRAM;
-
-			// Render RAM usage with ImGui
+			// Render global RAM usage with ImGui
 			ImGui::Text("Total RAM: %zu MB", totalRAM);
 			ImGui::Text("Available RAM: %zu MB", availableRAM);
-			ImGui::Text("Used RAM: %zu MB", usedRAM);
+			ImGui::Text("Used RAM (System-wide): %zu MB", usedRAM);
 		}
 		else {
-			ImGui::Text("Failed to retrieve memory status.");
+			ImGui::Text("Failed to retrieve global memory status.");
 		}
+
+		// Memory usage of the current process
+		HANDLE hProcess = GetCurrentProcess();
+		PROCESS_MEMORY_COUNTERS_EX pmc;
+
+		if (GetProcessMemoryInfo(hProcess, (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
+			// Working set size (RAM currently in use by the process) in MB
+			size_t workingSetSize = pmc.WorkingSetSize / 1024 / 1024;
+
+			// Private bytes (committed memory) in MB
+			size_t privateBytes = pmc.PrivateUsage / 1024 / 1024;
+
+			// Render process memory usage with ImGui
+			ImGui::Text("Program RAM Usage (Working Set): %zu MB", workingSetSize);
+			ImGui::Text("Program RAM Usage (Private Bytes): %zu MB", privateBytes);
+		}
+		else {
+			ImGui::Text("Failed to retrieve program memory status.");
+		}
+
+		// Close the process handle (not strictly necessary for GetCurrentProcess)
+		CloseHandle(hProcess);
 	}
 	ImGui::End();
 }
 
+void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
+{
+	// Store the new width and height, and mark the need to resize DirectX resources.
+	if (width > 0 && height > 0)
+	{
+		renderDevice->Resize(width, height);
+	}
+}
 
 int main() {
 	GetProcessorName(processorName);
@@ -142,6 +172,9 @@ int main() {
 		glfwTerminate();
 		exit(EXIT_FAILURE);
 	}
+	// Set the framebuffer size callback.
+	glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
+
 	// Disable V-Sync in GLFW
 	glfwSwapInterval(0); // This sets the swap interval to 0, disabling V-Sync
 	

@@ -45,15 +45,19 @@ void RenderDeviceD3D11::GetVRAMInfo() {
 
 // This function calls all the next steps declarated in this header
 void RenderDeviceD3D11::InitD3D11(HWND t_hwnd) {
-    CreateFactory();
-    SetupHardwareAdapter();
-    InitializeDeviceAndContext();
-    CreateSwapChain(t_hwnd);
-    CreateRenderTargetView();
-    CreateRenderPipeline();
-    SetupViewport();
+    try {
+        CreateFactory();
+        SetupHardwareAdapter();
+        InitializeDeviceAndContext();
+        CreateSwapChain(t_hwnd);
+        Resize(m_windowWidth, m_windowHeight); // Handles resource creation
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "DirectX 11 initialization complete.");
+    }
+    catch (const std::exception& ex) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "DirectX 11 initialization failed: ", ex.what());
+        throw;
+    }
 
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "DirectX 11 initialization complete.");
 }
 
 // Creates the DXGI Factory
@@ -356,6 +360,36 @@ void RenderDeviceD3D11::PresentFrame() {
         m_swapChain->Present(is_vsync_enabled ? 1 : 0, 0);
 }
 
+void RenderDeviceD3D11::Resize(int newWidth, int newHeight) {
+    if (newWidth <= 0 || newHeight <= 0) return;
+
+    // Update window dimensions
+    m_windowWidth = newWidth;
+    m_windowHeight = newHeight;
+
+    // Release current resources
+    m_renderTargetView.Reset();
+    m_depthStencilView.Reset();
+    m_depthStencilBuffer.Reset();
+    m_backBuffer.Reset();
+
+    // Resize the swap chain
+    HRESULT result = m_swapChain->ResizeBuffers(
+        0, // Preserve buffer count
+        m_windowWidth,
+        m_windowHeight,
+        DXGI_FORMAT_UNKNOWN, // Preserve format
+        0                   // No flags
+    );
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to resize swap chain.");
+    }
+
+    // Recreate resources
+    CreateRenderTargetView();
+    CreateRenderPipeline();
+    SetupViewport();
+}
 
 void RenderDeviceD3D11::LogHRESULTError(HRESULT hr, const char* message) {
 	char buffer[512];
