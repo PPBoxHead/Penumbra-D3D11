@@ -20,19 +20,19 @@ At the moment of writing this *(2024/12/25)*, there's not almost any feature to 
 
 | Icon | Meaning  |
 | :----| :------- |
-| :white_check_mark: | *Implemented* |
-| :negative_squared_cross_mark: | *Not done yet* |
-| :eight_spoked_asterisk: | *Experimental* |
+| :heavy_check_mark: | *Implemented* |
+| :x: | *Not done yet* |
+| :o: | *Experimental* |
 
-- Scripted in C++17 - :white_check_mark:
-- Shader class with struct descriptors-based approach for easy declaration and initialization - :white_check_mark:
-- Console Logger and File System (it's mostly almost finished) handling - :white_check_mark:
-- glTF/glb loader - :negative_squared_cross_mark:
-- DirectX Shader Compiler integration - :eight_spoked_asterisk:
+- Scripted in C++17 - :heavy_check_mark:
+- Shader class with struct descriptors-based approach for easy declaration and initialization - :heavy_check_mark:
+- Console Logger and File System (it's mostly almost finished) handling - :heavy_check_mark:
+- glTF/glb loader - :x:
+- DirectX Shader Compiler integration - :o:
 - Different GI and rendering solutions I would like to add and test
-    - Forward+ (Tiled Forward Rendering) - :eight_spoked_asterisk:
-    - Stencil Shadow Volumes (on the style games like DOOM 3 and F.E.A.R. had) - :eight_spoked_asterisk:
-    - DDGI (Dynamic Diffuse Global Illumination) - :eight_spoked_asterisk:
+    - Forward+ (Tiled Forward Rendering) - :o:
+    - Stencil Shadow Volumes (on the style games like DOOM 3 and F.E.A.R. had) - :o:
+    - DDGI (Dynamic Diffuse Global Illumination) - :o:
 
 
 ## Build and Run
