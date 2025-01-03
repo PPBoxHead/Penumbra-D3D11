@@ -175,6 +175,10 @@ void Shader::BindConstantBuffer(ID3D11DeviceContext* context, const std::string&
 
     ID3D11Buffer* buffer = it->second.Get();
 
+    // Validate shader flags
+    if (shaderFlags == 0) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Invalid shader flags for constant buffer: " + name);
+    }
     // Use custom flags to decide where to bind the constant buffer
     if (shaderFlags & ShaderStage::VertexShader) {
         context->VSSetConstantBuffers(slot, 1, &buffer);

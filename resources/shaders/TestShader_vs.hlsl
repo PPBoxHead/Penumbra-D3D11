@@ -1,16 +1,26 @@
-struct VertexIn {
-    float3 position : POS;
-    float4 color : COL;
+cbuffer ConstantBuffer : register(b0)
+{
+    matrix worldMatrix;
 };
 
-struct VertexOut {
-    float4 position : SV_POSITION;
-    float4 color : COL;
+struct VertexIn
+{
+    float3 Position : POSITION;
+    float4 Color : COLOR;
 };
 
-VertexOut vs_main(VertexIn input) {
+struct VertexOut
+{
+    float4 Position : SV_POSITION;
+    float4 Color : COLOR;
+};
+
+VertexOut vs_main(VertexIn input)
+{
     VertexOut output;
-    output.position = float4(input.position, 1.0);;
-    output.color = input.color;
+    
+    output.Position = mul(float4(input.Position, 1.0f), worldMatrix);
+    output.Color = input.Color;
+    
     return output;
 }

@@ -158,6 +158,14 @@ void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 	}
 }
 
+void UpdateRotation(Shader& shader, ID3D11DeviceContext* context, float angle)
+{
+	DirectX::XMMATRIX worldMatrix = DirectX::XMMatrixRotationAxis(DirectX::FXMVECTOR{0.0f, 0.0f, 1.0f}, angle);
+	worldMatrix = DirectX::XMMatrixTranspose(worldMatrix); // Transpose for HLSL compatibility
+
+	shader.UpdateConstantBuffer(context, "WorldMatrixBuffer", &worldMatrix, sizeof(worldMatrix));
+}
+
 int main() {
 	GetProcessorName(processorName);
 
@@ -221,8 +229,8 @@ int main() {
 
 	// Example input layout (this should match your vertex structure)
 	D3D11_INPUT_ELEMENT_DESC layout[] = {
-		{"POS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"COL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
 	};
 	UINT numElements = ARRAYSIZE(layout);
 
@@ -234,12 +242,13 @@ int main() {
 	Shader shaderTest;
 	shaderTest.Initialize(device, shaderDesc, layout, numElements);
 
-	DirectX::XMMATRIX transformMatrix = DirectX::XMMatrixIdentity();
 
 	CONSTANT_BUFFER_DESC cBufferDesc = {};
-	cBufferDesc.bufferSize = sizeof(transformMatrix);
+	cBufferDesc.bufferSize = sizeof(DirectX::XMMATRIX);
 
-	shaderTest.CreateConstantBuffer(device, "MatrixBuffer", cBufferDesc);
+	shaderTest.CreateConstantBuffer(device, "WorldMatrixBuffer", cBufferDesc);
+
+	float angle = 1.0f;
 
 		/// Let's try initialize ImGui
 	// Setup Dear ImGui context
@@ -271,10 +280,14 @@ int main() {
 
 		// Clear the render target and depth/stencil view
 		renderDevice->StartFrame(clearColor);
+		// Update the rotation angle
+		angle += 0.01f;
 
+		// Update constant buffer
+		UpdateRotation(shaderTest, deviceContext, angle);
 
-			/// We render a triangle here lol
 		shaderTest.SetShaders(deviceContext);
+		shaderTest.BindConstantBuffer(deviceContext, "WorldMatrixBuffer", 0, ShaderStage::VertexShader);
 
 		UINT stride = sizeof(ColoredVertexData);
 		UINT offset = 0;
