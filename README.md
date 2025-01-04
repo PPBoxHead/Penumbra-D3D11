@@ -18,21 +18,15 @@ At the moment of writing this *(2024/12/25)*, there's not almost any feature to 
 
 ## Future (and current) Features
 
-| Icon | Meaning  |
-| :----| :------- |
-| :heavy_check_mark: | *Implemented* |
-| :x: | *Not done yet* |
-| :o: | *Experimental* |
-
-- Scripted in C++17 - :heavy_check_mark:
-- Shader class with struct descriptors-based approach for easy declaration and initialization - :heavy_check_mark:
-- Console Logger and File System (it's mostly almost finished) handling - :heavy_check_mark:
-- glTF/glb loader - :x:
-- DirectX Shader Compiler integration - :o:
-- Different GI and rendering solutions I would like to add and test
-    - Forward+ (Tiled Forward Rendering) - :o:
-    - Stencil Shadow Volumes (on the style games like DOOM 3 and F.E.A.R. had) - :o:
-    - DDGI (Dynamic Diffuse Global Illumination) - :o:
+- [x] Scripted in C++17
+- [x] Shader class with struct descriptors-based approach for easy declaration and initialization
+- [x] Console Logger and File System (it's mostly almost finished) handling
+- [ ] glTF/glb loader
+- [ ] DirectX Shader Compiler integration
+- [ ] Different GI and rendering solutions I would like to add and test (experimental)
+    - Forward+ (Tiled Forward Rendering)
+    - Stencil Shadow Volumes (on the style games like DOOM 3 and F.E.A.R. had)
+    - DDGI (Dynamic Diffuse Global Illumination)
 
 
 ## Build and Run
