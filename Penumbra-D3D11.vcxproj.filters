@@ -73,7 +73,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="resources\shaders\TestShader_vs.hlsl" />
-    <FxCompile Include="resources\shaders\TestShader_ps.hlsl" />
+    <FxCompile Include="resources\shaders\ColoredVertex_vs.hlsl" />
+    <FxCompile Include="resources\shaders\ColoredVertex_ps.hlsl" />
+    <FxCompile Include="resources\shaders\ColoredTexturedVertex_vs.hlsl" />
+    <FxCompile Include="resources\shaders\ColoredTexturedVertex_ps.hlsl" />
   </ItemGroup>
 </Project>

@@ -21,6 +21,12 @@ struct ColoredNormalVertexData {
 	DirectX::XMFLOAT3 vNormal;
 };
 
+struct ColoredTexturedVertexData {
+	DirectX::XMFLOAT3 vPosition;
+	DirectX::XMFLOAT4 vColor;
+	DirectX::XMFLOAT2 vTexCoordinate;
+};
+
 struct TexturedVertexData {
 	DirectX::XMFLOAT3 vPosition;
 	DirectX::XMFLOAT2 vTexCoordinate;

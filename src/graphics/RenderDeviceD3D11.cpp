@@ -2,6 +2,8 @@
 
 #include "../Utils/ConsoleLogger.h"
 
+#include <vector>
+
 
 // This line indicates to hybrid graphics system to prefer the discrete part by default
 extern "C" {
@@ -69,79 +71,88 @@ void RenderDeviceD3D11::CreateFactory() {
 }
 // Enumerate the hardware adapter
 void RenderDeviceD3D11::SetupHardwareAdapter() {
+    // Enumerate the hardware adapter
     HRESULT result = m_factory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter**>(m_adapter.GetAddressOf()));
-    if (FAILED(result))
-        LogHRESULTError(result, "Failed to enumerate adapters: ");
-    // Enumerate the primary adapter output (monitor).
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to enumerate adapters.");
+        return;
+    }
+
+    // Enumerate the primary adapter output (monitor)
     result = m_adapter->EnumOutputs(0, &m_adapterOutput);
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to enumerate the adapter output.");
+        return;
+    }
 
-    // Get the number of modes that fit the DXGI_FORMAT_R8G8B8A8_UNORM display
-    // format for the adapter output (monitor).
-    unsigned int numModes = 0;
-    DXGI_MODE_DESC* displayModeList;
-    result = m_adapterOutput->GetDisplayModeList(
-        DXGI_FORMAT_R16G16B16A16_FLOAT,
-        DXGI_ENUM_MODES_INTERLACED,
-        &numModes,
-        nullptr
-    );
-    if (FAILED(result))
-        LogHRESULTError(result, "Failed to setup the adapter output: ");
-
-    // Create a list to hold all the possible display modes for this monitor/video
-    // card combination.
-    displayModeList = new DXGI_MODE_DESC[numModes];
+    // Query the number of supported display modes
+    UINT numModes = 0;
     result = m_adapterOutput->GetDisplayModeList(
         DXGI_FORMAT_R8G8B8A8_UNORM,
         DXGI_ENUM_MODES_INTERLACED,
         &numModes,
-        displayModeList
+        nullptr
     );
-    if (FAILED(result))
-        LogHRESULTError(result, "Failed to create a list to hold all the possible display modes: ");
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to retrieve display mode list count.");
+        return;
+    }
 
-    // Now go through all the display modes and find the one that matches the screen width and height.
-    // When a match is found store the numerator and denominator of the refresh rate for that monitor.
-    for (unsigned int i = 0; i < numModes; i++) {
-        if (displayModeList[i].Width == static_cast<unsigned int>(m_windowWidth)) {
-            if (displayModeList[i].Height == static_cast<unsigned int>(m_windowHeight)) {
-                m_numerator = displayModeList[i].RefreshRate.Numerator;
-                m_denominator = displayModeList[i].RefreshRate.Denominator;
-            }
+    // Allocate space for display modes and retrieve them
+    std::vector<DXGI_MODE_DESC> displayModeList(numModes);
+    result = m_adapterOutput->GetDisplayModeList(
+        DXGI_FORMAT_R8G8B8A8_UNORM,
+        DXGI_ENUM_MODES_INTERLACED,
+        &numModes,
+        displayModeList.data()
+    );
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to retrieve display mode list.");
+        return;
+    }
+
+    // Select a refresh rate matching the target resolution
+    m_numerator = 0;
+    m_denominator = 1; // Defaults to uncapped
+    for (const auto& mode : displayModeList) {
+        if (mode.Width == static_cast<UINT>(m_windowWidth) &&
+            mode.Height == static_cast<UINT>(m_windowHeight)) {
+            m_numerator = mode.RefreshRate.Numerator;
+            m_denominator = mode.RefreshRate.Denominator;
+            break;
         }
     }
 
-    // Get the adapter (video card) description.
+    // Log a warning if no matching mode was found
+    if (m_numerator == 0) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_WARNING,
+            "No matching display mode found. Using uncapped refresh rate.");
+    }
+
+    // Retrieve adapter description for debugging purposes
     DXGI_ADAPTER_DESC adapterDesc;
     result = m_adapter->GetDesc(&adapterDesc);
-    if (FAILED(result))
-    {
-        LogHRESULTError(result, "Failed to get the adapter description: ");
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to retrieve adapter description.");
+        return;
     }
 
-    // Store the dedicated video card memory in megabytes,
-    // This is mostly for debug information.
-    videoCardDedicatedMemory = int(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
-    // Store the shared system video card memory in megabytes,
-    // This is mostly for debug information.
-    videoCardSharedSystemMemory = int(adapterDesc.SharedSystemMemory / 1024 / 1024);
-    size_t stringLength;
-    // Convert the name of the video card to a character array and store it.
-    const int error = wcstombs_s(&stringLength, videoCardDescription, 128, adapterDesc.Description, 128);
-    if (error != 0)
-    {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Failed to convert video card description");
+    // Store video card information
+    videoCardDedicatedMemory = static_cast<int>(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
+    videoCardSharedSystemMemory = static_cast<int>(adapterDesc.SharedSystemMemory / 1024 / 1024);
+    size_t stringLength = 0;
+    if (wcstombs_s(&stringLength, videoCardDescription, 128, adapterDesc.Description, 128) != 0) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Failed to convert video card description.");
     }
 
+    // Debug logging for adapter information
 #if defined(_DEBUG)
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card dedicated memory - VRAM: ", videoCardDedicatedMemory, "MB");
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card shared system memory - RAM: ", videoCardSharedSystemMemory, "MB");
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card name - Vendor: ", videoCardDescription);
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card dedicated memory (VRAM): ",
+        videoCardDedicatedMemory, "MB");
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card shared system memory (RAM): ",
+        videoCardSharedSystemMemory, "MB");
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card description: ", videoCardDescription);
 #endif
-
-    // Release the display mode list.
-    delete[] displayModeList;
-    displayModeList = nullptr;
 
 }
 // Create device and device context
@@ -205,6 +216,7 @@ void RenderDeviceD3D11::CreateSwapChain(HWND t_hwnd) {
     {
         swapChainDesc.BufferDesc.RefreshRate.Numerator = 0;
         swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
+        swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
     }
 
     // Set the usage of the back buffer.
@@ -221,7 +233,7 @@ void RenderDeviceD3D11::CreateSwapChain(HWND t_hwnd) {
     swapChainDesc.Windowed = TRUE;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-    swapChainDesc.Flags = 0;
+    //swapChainDesc.Flags = 0;
 
     // Use the factory to create the swap chain
     HRESULT result = m_factory->CreateSwapChain(
@@ -406,14 +418,21 @@ void RenderDeviceD3D11::Resize(int newWidth, int newHeight) {
     m_depthStencilView.Reset();
     m_depthStencilBuffer.Reset();
     m_backBuffer.Reset();
+    
+    UINT swapchainFlags = 0;
+    if (is_vsync_enabled)
+        swapchainFlags = 0;
+    else
+        swapchainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
 
     // Resize the swap chain
     HRESULT result = m_swapChain->ResizeBuffers(
         0, // Preserve buffer count
         m_windowWidth,
         m_windowHeight,
-        DXGI_FORMAT_UNKNOWN, // Preserve format
-        0                   // No flags
+        DXGI_FORMAT_UNKNOWN,
+        swapchainFlags
     );
     if (FAILED(result)) {
         LogHRESULTError(result, "Failed to resize swap chain.");

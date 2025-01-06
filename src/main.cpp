@@ -10,6 +10,9 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_dx11.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
 #include "graphics/RenderDeviceD3D11.h"
 #include "graphics/VertexFormat.h"
 #include "graphics/Shader.h"
@@ -97,6 +100,7 @@ void RenderImGuiPerformance() {
 	ImGui::Text("Average FPS: %.2f", m_AvgFPS); // Display the FPS with one decimal point
 	ImGui::Text("Total Frame Time: %.4f ms", totalFrameTime);
 	ImGui::Text("Last Delta: %.4f ms", m_Delta * 1000.0f); // Display frame time in milliseconds
+	ImGui::Text("Window Size: %ix%ipx", renderDevice->m_windowWidth, renderDevice->m_windowHeight); // Display frame time in milliseconds
 	if (ImGui::CollapsingHeader("GPU Data", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("GPU Vendor: %s", renderDevice->videoCardDescription);
 		ImGui::Text("GPU frame time: %.4f ms", renderDevice->gpuFrameTime);
@@ -196,16 +200,16 @@ int main() {
 
 	renderDevice = std::make_unique<RenderDeviceD3D11>(1280, 720, glfwGetWin32Window(window));
 
-	/// How to render a colored triangle in D3D11:
+	/// How to render a colored quad in D3D11:
 	ID3D11Device* device = renderDevice->GetDevice(); // This is to call the creation of buffers with device->CreateBuffer() call
 	ID3D11DeviceContext* deviceContext = renderDevice->GetDeviceContext();
 		/// First create the Vertex Buffer
 	// Declare the vertices and their data, in this case, vertex position and vertex colors
-	ColoredVertexData vertices[] = {
-		{ DirectX::XMFLOAT3(-0.5f,  0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },  // Top-left
-		{ DirectX::XMFLOAT3(0.5f,  0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },  // Top-right
-		{ DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },  // Bottom-left
-		{ DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) }   // Bottom-right
+	ColoredTexturedVertexData vertices[] = {
+		{ DirectX::XMFLOAT3(-0.5f,  0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT2(0.0f, 0.0f) },  // Top-left
+		{ DirectX::XMFLOAT3(0.5f,  0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 0.0f) },  // Top-right
+		{ DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), DirectX::XMFLOAT2(0.0f, 1.0f) },  // Bottom-left
+		{ DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 1.0f) }   // Bottom-right
 	};
 	// Now let's make the buffers for the triangle
 	ComPtr<ID3D11Buffer> vertexBuffer;
@@ -235,28 +239,100 @@ int main() {
 	// Create the index buffer
 	device->CreateBuffer(&indexBufferDesc, &indexData, &indexBuffer);
 
+		/// Here we create a shader and initialize it!
 	// Example input layout (this should match your vertex structure)
 	D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}  // Texture Coordinates
 	};
 	UINT numElements = ARRAYSIZE(layout);
 
-
 	SHADER_DESC shaderDesc = {};
-	shaderDesc.vertexShaderPath = L"shaders/TestShader_vs.hlsl";
-	shaderDesc.pixelShaderPath = L"shaders/TestShader_ps.hlsl";
+	shaderDesc.vertexShaderPath = L"shaders/ColoredTexturedVertex_vs.hlsl";
+	shaderDesc.pixelShaderPath = L"shaders/ColoredTexturedVertex_ps.hlsl";
 	
 	Shader shaderTest;
 	shaderTest.Initialize(device, shaderDesc, layout, numElements);
 
-
 	CONSTANT_BUFFER_DESC cBufferDesc = {};
 	cBufferDesc.bufferSize = sizeof(DirectX::XMMATRIX);
 
-	shaderTest.CreateConstantBuffer(device, "WorldMatrixBuffer", cBufferDesc);
-
+	//shaderTest.CreateConstantBuffer(device, "WorldMatrixBuffer", cBufferDesc);
 	float angle = 1.0f;
+
+		/// Now let's create a texture
+	// load image and create a 2d texture
+	ID3D11ShaderResourceView* texture_view = nullptr;
+	{
+		// load image
+		unsigned char* data = nullptr;
+		int img_width, img_height, img_channels;
+		{
+			data = stbi_load("textures/tile_64x64.png", &img_width, &img_height, &img_channels, 4);
+			if (data == nullptr)
+			{
+				OutputDebugString(L"Failed to load image\n");
+				return 1;
+			}
+		}
+
+		// craete texture
+		ID3D11Texture2D* texture = nullptr;
+		{
+			D3D11_TEXTURE2D_DESC texture_desc = {};
+			texture_desc.Width = img_width;
+			texture_desc.Height = img_height;
+			texture_desc.MipLevels = 1;
+			texture_desc.ArraySize = 1;
+			texture_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			texture_desc.SampleDesc.Count = 1;
+			texture_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+			D3D11_SUBRESOURCE_DATA subresource_data = {};
+			subresource_data.pSysMem = data;
+			subresource_data.SysMemPitch = img_width * 4;
+
+			HRESULT result = device->CreateTexture2D(&texture_desc, &subresource_data, &texture);
+			if (FAILED(result))
+			{
+				OutputDebugString(L"Failed to create texture 2d\n");
+				return GetLastError();
+			}
+		}
+		stbi_image_free(data);
+
+		// create texture view
+		{
+			D3D11_SHADER_RESOURCE_VIEW_DESC view_desc = {};
+			view_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			view_desc.Texture2D.MipLevels = 1;
+			HRESULT result = device->CreateShaderResourceView(texture, &view_desc, &texture_view);
+			if (FAILED(result))
+			{
+				OutputDebugString(L"Failed to create render target view\n");
+				return GetLastError();
+			}
+		}
+		texture->Release();
+	}
+
+	// create sampler state
+	ID3D11SamplerState* sampler_state = nullptr;
+	{
+		D3D11_SAMPLER_DESC sampler_desc = {};
+		sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		HRESULT result = device->CreateSamplerState(&sampler_desc, &sampler_state);
+		if (FAILED(result))
+		{
+			OutputDebugString(L"Failed to create sampler state\n");
+			return GetLastError();
+		}
+	}
 
 		/// Let's try initialize ImGui
 	// Setup Dear ImGui context
@@ -290,14 +366,24 @@ int main() {
 
 		// Clear the render target and depth/stencil view
 		renderDevice->StartFrame(clearColor);
+
+		ImGui::Begin("DirectX11 Texture Test");
+		ImGui::Text("pointer = %p", texture_view);
+		ImGui::Image((ImTextureID)(intptr_t)texture_view, ImVec2(64, 64));
+		ImGui::End();
+
 		// Update the rotation angle
 		angle += 0.01f;
 
 		// Update constant buffer
-		UpdateRotation(shaderTest, deviceContext, angle);
+		//UpdateRotation(shaderTest, deviceContext, angle);
 
 		shaderTest.SetShaders(deviceContext);
-		shaderTest.BindConstantBuffer(deviceContext, "WorldMatrixBuffer", 0, ShaderStage::VertexShader);
+		// set texture and sampler
+		deviceContext->PSSetShaderResources(0, 1, &texture_view);
+		deviceContext->PSSetSamplers(0, 1, &sampler_state);
+
+		//shaderTest.BindConstantBuffer(deviceContext, "WorldMatrixBuffer", 0, ShaderStage::VertexShader);
 
 		UINT stride = sizeof(ColoredVertexData);
 		UINT offset = 0;
@@ -327,6 +413,9 @@ int main() {
 	ImGui_ImplDX11_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+
+	sampler_state->Release();
+	texture_view->Release();
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

@@ -24,13 +24,15 @@ class RenderDeviceD3D11 {
 		void StartFrame(const std::array<float, 4>& clearColor);
 		void PresentFrame();
 
-		bool is_vsync_enabled = false;
+		bool is_vsync_enabled = true;
 		int videoCardDedicatedMemory;
 		int videoCardSharedSystemMemory;
 		char videoCardDescription[128];
 		DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = {};
 		float gpuFrameTime = 0.0f;
 
+		int m_windowWidth;
+		int m_windowHeight;
 	private:
 		// This function calls all the next steps declarated in this header
 		void InitD3D11(HWND t_hwnd);
@@ -54,10 +56,6 @@ class RenderDeviceD3D11 {
 		void LogHRESULTError(HRESULT hr, const char* message);
 
 	private:
-
-		int m_windowWidth;
-		int m_windowHeight;
-		
 		Microsoft::WRL::ComPtr<ID3D11Query> m_disjointQuery;
 		Microsoft::WRL::ComPtr<ID3D11Query> m_startQuery;
 		Microsoft::WRL::ComPtr<ID3D11Query> m_endQuery;
@@ -75,8 +73,8 @@ class RenderDeviceD3D11 {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_depthStencilBuffer;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_depthStencilState;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_depthStencilView;
-
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerState;
+
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_backBuffer;
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_renderTargetView;
 
