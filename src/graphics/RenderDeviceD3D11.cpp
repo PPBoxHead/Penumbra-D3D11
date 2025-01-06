@@ -51,6 +51,7 @@ void RenderDeviceD3D11::InitD3D11(HWND t_hwnd) {
         InitializeDeviceAndContext();
         CreateSwapChain(t_hwnd);
         Resize(m_windowWidth, m_windowHeight); // Handles resource creation
+        InitializeGPUQuery();
         ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "DirectX 11 initialization complete.");
     }
     catch (const std::exception& ex) {
@@ -345,6 +346,16 @@ void RenderDeviceD3D11::SetupViewport() {
 
     m_deviceContext->RSSetViewports(1, &m_viewport);
 }
+void RenderDeviceD3D11::InitializeGPUQuery() {
+    D3D11_QUERY_DESC queryDesc = {};
+    queryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+    m_device->CreateQuery(&queryDesc, &m_disjointQuery);
+
+    queryDesc.Query = D3D11_QUERY_TIMESTAMP;
+    m_device->CreateQuery(&queryDesc, &m_startQuery);
+    m_device->CreateQuery(&queryDesc, &m_endQuery);
+}
+
 
 // Frame lifecycle
 void RenderDeviceD3D11::StartFrame(const std::array<float, 4>& clearColor) {
@@ -355,8 +366,31 @@ void RenderDeviceD3D11::StartFrame(const std::array<float, 4>& clearColor) {
 	m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor.data());
     // Clear the Depth-Stencil View
     m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+    // Start GPU frame timing
+    m_deviceContext->Begin(m_disjointQuery.Get());
+    m_deviceContext->End(m_startQuery.Get());
 }
 void RenderDeviceD3D11::PresentFrame() {
+    // End GPU frame timing
+    m_deviceContext->End(m_endQuery.Get());
+    m_deviceContext->End(m_disjointQuery.Get());
+
+    // Retrieve and calculate GPU frame time
+    D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjointData;
+    while (m_deviceContext->GetData(m_disjointQuery.Get(), &disjointData, sizeof(disjointData), 0) == S_FALSE);
+
+    if (!disjointData.Disjoint) {
+        UINT64 startTime = 0, endTime = 0;
+        while (m_deviceContext->GetData(m_startQuery.Get(), &startTime, sizeof(startTime), 0) == S_FALSE);
+        while (m_deviceContext->GetData(m_endQuery.Get(), &endTime, sizeof(endTime), 0) == S_FALSE);
+
+        gpuFrameTime = static_cast<float>(endTime - startTime) / disjointData.Frequency * 1000.0f;
+    }
+    else {
+        gpuFrameTime = -1.0f; // Indicate invalid GPU timing
+    }
+
         m_swapChain->Present(is_vsync_enabled ? 1 : 0, 0);
 }
 

@@ -29,6 +29,7 @@ class RenderDeviceD3D11 {
 		int videoCardSharedSystemMemory;
 		char videoCardDescription[128];
 		DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = {};
+		float gpuFrameTime = 0.0f;
 
 	private:
 		// This function calls all the next steps declarated in this header
@@ -48,12 +49,18 @@ class RenderDeviceD3D11 {
 		// Configure the viewport
 		void SetupViewport();
 
+		void InitializeGPUQuery();
+
 		void LogHRESULTError(HRESULT hr, const char* message);
 
 	private:
 
 		int m_windowWidth;
 		int m_windowHeight;
+		
+		Microsoft::WRL::ComPtr<ID3D11Query> m_disjointQuery;
+		Microsoft::WRL::ComPtr<ID3D11Query> m_startQuery;
+		Microsoft::WRL::ComPtr<ID3D11Query> m_endQuery;
 
 		Microsoft::WRL::ComPtr<IDXGIFactory4> m_factory;
 		Microsoft::WRL::ComPtr<IDXGIAdapter3> m_adapter;

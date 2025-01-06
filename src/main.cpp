@@ -20,7 +20,7 @@
 
 using namespace Microsoft::WRL;
 
-RenderDeviceD3D11* renderDevice = nullptr;
+std::unique_ptr<RenderDeviceD3D11> renderDevice;
 
 #include <array>
 #include <cstring>
@@ -81,19 +81,25 @@ void UpdateFPS() {
 	}
 }
 
+std::chrono::high_resolution_clock::time_point cpuStartTime;
+float cpuFrameTime = 0.0f;
+
 // Render ImGui FPS Counter
 void RenderImGuiPerformance() {
 	renderDevice->GetVRAMInfo();
 	// Calculate VRAM usage in MB
 	size_t usedVRAM = renderDevice->videoMemoryInfo.CurrentUsage / 1024 / 1024;  // In MB
+	float totalFrameTime = cpuFrameTime + renderDevice->gpuFrameTime;
 
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
 	ImGui::SetNextWindowBgAlpha(1.0f); // Dark background
 	ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiTreeNodeFlags_DefaultOpen);
 	ImGui::Text("Average FPS: %.2f", m_AvgFPS); // Display the FPS with one decimal point
+	ImGui::Text("Total Frame Time: %.4f ms", totalFrameTime);
 	ImGui::Text("Last Delta: %.4f ms", m_Delta * 1000.0f); // Display frame time in milliseconds
 	if (ImGui::CollapsingHeader("GPU Data", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("GPU Vendor: %s", renderDevice->videoCardDescription);
+		ImGui::Text("GPU frame time: %.4f ms", renderDevice->gpuFrameTime);
 		ImGui::Text("Graphics Adapter Dedicated VRAM: %i MB", renderDevice->videoCardDedicatedMemory);
 		ImGui::Text("Graphics Adapter Shared RAM: %i MB", renderDevice->videoCardSharedSystemMemory);
 		ImGui::Text("Used VRAM: %zu MB", usedVRAM);
@@ -101,6 +107,7 @@ void RenderImGuiPerformance() {
 	}
 	if (ImGui::CollapsingHeader("CPU Data", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("CPU Vendor: %s", processorName);
+		ImGui::Text("CPU frame time: %.4f ms", cpuFrameTime);
 		// Memory status structure
 		MEMORYSTATUSEX statex;
 		statex.dwLength = sizeof(statex);
@@ -152,7 +159,7 @@ void RenderImGuiPerformance() {
 void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
 	// Store the new width and height, and mark the need to resize DirectX resources.
-	if (width > 0 && height > 0)
+	if (width > 0 && height > 0 && renderDevice)
 	{
 		renderDevice->Resize(width, height);
 	}
@@ -186,7 +193,8 @@ int main() {
 	// Disable V-Sync in GLFW
 	glfwSwapInterval(0); // This sets the swap interval to 0, disabling V-Sync
 	
-	renderDevice = new RenderDeviceD3D11(1280, 720, glfwGetWin32Window(window));
+
+	renderDevice = std::make_unique<RenderDeviceD3D11>(1280, 720, glfwGetWin32Window(window));
 
 	/// How to render a colored triangle in D3D11:
 	ID3D11Device* device = renderDevice->GetDevice(); // This is to call the creation of buffers with device->CreateBuffer() call
@@ -269,7 +277,9 @@ int main() {
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 
+
 		UpdateFPS();
+		cpuStartTime = std::chrono::high_resolution_clock::now();
 
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -308,6 +318,10 @@ int main() {
 
 		// Present the back buffer to the screen
 		renderDevice->PresentFrame();
+
+		auto cpuEndTime = std::chrono::high_resolution_clock::now();
+		cpuFrameTime = std::chrono::duration<float, std::milli>(cpuEndTime - cpuStartTime).count();
+		
 	}
 
 	ImGui_ImplDX11_Shutdown();
