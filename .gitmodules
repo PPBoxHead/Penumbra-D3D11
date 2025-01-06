@@ -2,3 +2,6 @@
 	path = third-party/include/imgui
 	url = https://github.com/ocornut/imgui.git
 	branch = docking
+[submodule "third-party/include/stb"]
+	path = third-party/include/stb
+	url = https://github.com/nothings/stb.git
