@@ -119,6 +119,16 @@ std::string FileSystem::getExecutablePath() {
     }
     return std::string(buffer);
 }
+std::string FileSystem::getExecutableDirectory() {
+	ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Fetching the executable directory.");
+
+	// Get the full path of the executable
+	std::string executablePath = getExecutablePath();
+
+	// Extract the parent directory
+	std::filesystem::path directoryPath = std::filesystem::path(executablePath).parent_path();
+	return directoryPath.string();
+}
 
 std::string FileSystem::getUserFolder() {
     PWSTR path = nullptr;
@@ -129,7 +139,6 @@ std::string FileSystem::getUserFolder() {
     CoTaskMemFree(path);
     return std::string(ws.begin(), ws.end());
 }
-
 std::string FileSystem::getTempFolder() {
     char buffer[MAX_PATH];
     DWORD result = GetTempPathA(MAX_PATH, buffer);
@@ -140,9 +149,13 @@ std::string FileSystem::getTempFolder() {
 }
 
 void FileSystem::openFileExplorer(const std::string& path) {
-	ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Opening file explorer at: ", path);
-	ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWDEFAULT);
+	//ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Opening file explorer at: ", path);
+	std::string command = "/select," + path;
+	if ((intptr_t)ShellExecuteA(nullptr, "open", "explorer.exe", command.c_str(), nullptr, SW_SHOWNORMAL) <= 32) {
+		ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Failed to open file explorer for path: ", path);
+	}
 }
+
 std::string FileSystem::toLowerCase(const std::string& str) {
 	std::string result = str;
 	std::transform(result.begin(), result.end(), result.begin(), ::tolower);

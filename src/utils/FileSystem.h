@@ -27,10 +27,13 @@ class FileSystem {
 		static std::string getFileBuffer(const std::string& filePath);
 
 		static std::string getExecutablePath();
+		static std::string getExecutableDirectory();
+
     	static std::string getUserFolder();
     	static std::string getTempFolder();
 
 		static void openFileExplorer(const std::string& path = ".");
+
 		static std::string toLowerCase(const std::string& str);
 		static std::string toUpperCase(const std::string& str);
 };
