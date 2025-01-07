@@ -181,6 +181,7 @@ int main() {
 	GetProcessorName(processorName);
 
 	FileSystem::setWorkingDirectory("resources");
+	FileSystem::openFileExplorer(FileSystem::getUserFolder());
 
 	glfwInit();
 
@@ -258,81 +259,83 @@ int main() {
 	CONSTANT_BUFFER_DESC cBufferDesc = {};
 	cBufferDesc.bufferSize = sizeof(DirectX::XMMATRIX);
 
-	//shaderTest.CreateConstantBuffer(device, "WorldMatrixBuffer", cBufferDesc);
+	shaderTest.CreateConstantBuffer(device, "WorldMatrixBuffer", cBufferDesc);
 	float angle = 1.0f;
 
-		/// Now let's create a texture
-	// load image and create a 2d texture
-	ID3D11ShaderResourceView* texture_view = nullptr;
-	{
-		// load image
-		unsigned char* data = nullptr;
-		int img_width, img_height, img_channels;
-		{
-			data = stbi_load("textures/tile_64x64.png", &img_width, &img_height, &img_channels, 4);
-			if (data == nullptr)
-			{
-				OutputDebugString(L"Failed to load image\n");
-				return 1;
-			}
-		}
+		/// Now let's create a texturE
+	// craete texture
+	ID3D11Texture2D* texture = nullptr;
+	int ImageWidth;
+	int ImageHeight;
+	int ImageChannels;
+	int ImageDesiredChannels = 4;
 
-		// craete texture
-		ID3D11Texture2D* texture = nullptr;
-		{
-			D3D11_TEXTURE2D_DESC texture_desc = {};
-			texture_desc.Width = img_width;
-			texture_desc.Height = img_height;
-			texture_desc.MipLevels = 1;
-			texture_desc.ArraySize = 1;
-			texture_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			texture_desc.SampleDesc.Count = 1;
-			texture_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	unsigned char* ImageData = stbi_load("textures/tile_64x64.png",
+		&ImageWidth,
+		&ImageHeight,
+		&ImageChannels, ImageDesiredChannels);
+	assert(ImageData);
 
-			D3D11_SUBRESOURCE_DATA subresource_data = {};
-			subresource_data.pSysMem = data;
-			subresource_data.SysMemPitch = img_width * 4;
+	int ImagePitch = ImageWidth * 4;
 
-			HRESULT result = device->CreateTexture2D(&texture_desc, &subresource_data, &texture);
-			if (FAILED(result))
-			{
-				OutputDebugString(L"Failed to create texture 2d\n");
-				return GetLastError();
-			}
-		}
-		stbi_image_free(data);
+	// Texture
 
-		// create texture view
-		{
-			D3D11_SHADER_RESOURCE_VIEW_DESC view_desc = {};
-			view_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-			view_desc.Texture2D.MipLevels = 1;
-			HRESULT result = device->CreateShaderResourceView(texture, &view_desc, &texture_view);
-			if (FAILED(result))
-			{
-				OutputDebugString(L"Failed to create render target view\n");
-				return GetLastError();
-			}
-		}
-		texture->Release();
-	}
+	D3D11_TEXTURE2D_DESC ImageTextureDesc = {};
 
-	// create sampler state
-	ID3D11SamplerState* sampler_state = nullptr;
-	{
-		D3D11_SAMPLER_DESC sampler_desc = {};
-		sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-		sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-		sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-		HRESULT result = device->CreateSamplerState(&sampler_desc, &sampler_state);
-		if (FAILED(result))
-		{
-			OutputDebugString(L"Failed to create sampler state\n");
-			return GetLastError();
-		}
-	}
+	ImageTextureDesc.Width = ImageWidth;
+	ImageTextureDesc.Height = ImageHeight;
+	ImageTextureDesc.MipLevels = 1;
+	ImageTextureDesc.ArraySize = 1;
+	ImageTextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	ImageTextureDesc.SampleDesc.Count = 1;
+	ImageTextureDesc.SampleDesc.Quality = 0;
+	ImageTextureDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	ImageTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	D3D11_SUBRESOURCE_DATA ImageSubresourceData = {};
+
+	ImageSubresourceData.pSysMem = ImageData;
+	ImageSubresourceData.SysMemPitch = ImagePitch;
+
+	device->CreateTexture2D(&ImageTextureDesc,
+		&ImageSubresourceData,
+		&texture
+	);
+
+
+	free(ImageData);
+
+	// Shader resource view
+	ID3D11ShaderResourceView* ImageShaderResourceView;
+	device->CreateShaderResourceView(texture,
+		nullptr,
+		&ImageShaderResourceView
+	);
+
+	// Sampler
+	D3D11_SAMPLER_DESC ImageSamplerDesc = {};
+	ImageSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	ImageSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	ImageSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	ImageSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	ImageSamplerDesc.MipLODBias = 0.0f;
+	ImageSamplerDesc.MaxAnisotropy = 1;
+	ImageSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	ImageSamplerDesc.BorderColor[0] = 1.0f;
+	ImageSamplerDesc.BorderColor[1] = 1.0f;
+	ImageSamplerDesc.BorderColor[2] = 1.0f;
+	ImageSamplerDesc.BorderColor[3] = 1.0f;
+	ImageSamplerDesc.MinLOD = -FLT_MAX;
+	ImageSamplerDesc.MaxLOD = FLT_MAX;
+
+	ID3D11SamplerState* ImageSamplerState;
+
+	device->CreateSamplerState(&ImageSamplerDesc,
+		&ImageSamplerState);
+	
+	// set texture and sampler
+	deviceContext->PSSetShaderResources(0, 1, &ImageShaderResourceView);
+	deviceContext->PSSetSamplers(0, 1, &ImageSamplerState);
 
 		/// Let's try initialize ImGui
 	// Setup Dear ImGui context
@@ -367,25 +370,17 @@ int main() {
 		// Clear the render target and depth/stencil view
 		renderDevice->StartFrame(clearColor);
 
-		ImGui::Begin("DirectX11 Texture Test");
-		ImGui::Text("pointer = %p", texture_view);
-		ImGui::Image((ImTextureID)(intptr_t)texture_view, ImVec2(64, 64));
-		ImGui::End();
-
 		// Update the rotation angle
 		angle += 0.01f;
 
 		// Update constant buffer
-		//UpdateRotation(shaderTest, deviceContext, angle);
+		UpdateRotation(shaderTest, deviceContext, angle);
 
 		shaderTest.SetShaders(deviceContext);
-		// set texture and sampler
-		deviceContext->PSSetShaderResources(0, 1, &texture_view);
-		deviceContext->PSSetSamplers(0, 1, &sampler_state);
 
-		//shaderTest.BindConstantBuffer(deviceContext, "WorldMatrixBuffer", 0, ShaderStage::VertexShader);
+		shaderTest.BindConstantBuffer(deviceContext, "WorldMatrixBuffer", 0, ShaderStage::VertexShader);
 
-		UINT stride = sizeof(ColoredVertexData);
+		UINT stride = sizeof(ColoredTexturedVertexData);
 		UINT offset = 0;
 		//Bind the vertex buffer
 		deviceContext->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
@@ -413,9 +408,6 @@ int main() {
 	ImGui_ImplDX11_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
-
-	sampler_state->Release();
-	texture_view->Release();
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

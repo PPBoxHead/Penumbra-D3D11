@@ -21,7 +21,7 @@ VertexOut vs_main(VertexIn input)
 {
     VertexOut output;
     
-    output.Position = float4(input.Position, 1.0f);
+    output.Position = mul(float4(input.Position, 1.0f), worldMatrix);
     output.Color = input.Color;
     output.TexCoord = input.TexCoord;
     

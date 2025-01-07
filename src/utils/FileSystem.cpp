@@ -4,6 +4,8 @@
 
 #include <Windows.h>
 
+#include <ShlObj.h> // For SHGetKnownFolderPath
+
 #include <iostream>
 #include <filesystem>
 #include <fstream>
@@ -108,6 +110,33 @@ std::string FileSystem::getFileBuffer(const std::string& filePath) {
 	std::stringstream buffer;
 	buffer << file.rdbuf();
 	return buffer.str();
+}
+
+std::string FileSystem::getExecutablePath() {
+    char buffer[MAX_PATH];
+    if (GetModuleFileNameA(nullptr, buffer, MAX_PATH) == 0) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Failed to retrieve executable path.");
+    }
+    return std::string(buffer);
+}
+
+std::string FileSystem::getUserFolder() {
+    PWSTR path = nullptr;
+    if (FAILED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path))) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Failed to retrieve the user folder path.");
+    }
+    std::wstring ws(path);
+    CoTaskMemFree(path);
+    return std::string(ws.begin(), ws.end());
+}
+
+std::string FileSystem::getTempFolder() {
+    char buffer[MAX_PATH];
+    DWORD result = GetTempPathA(MAX_PATH, buffer);
+    if (result == 0 || result > MAX_PATH) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Failed to retrieve the temporary folder path.");
+    }
+    return std::string(buffer);
 }
 
 void FileSystem::openFileExplorer(const std::string& path) {
