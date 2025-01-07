@@ -181,7 +181,6 @@ int main() {
 	GetProcessorName(processorName);
 
 	FileSystem::setWorkingDirectory("resources");
-	FileSystem::openFileExplorer(FileSystem::getExecutableDirectory());
 
 	glfwInit();
 
