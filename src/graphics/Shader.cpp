@@ -120,12 +120,18 @@ bool Shader::CreateShader(ID3D11Device* device, const ComPtr<ID3DBlob>& blob, Co
 
 void Shader::SetShaders(ID3D11DeviceContext* context) {
     context->IASetInputLayout(m_inputLayout.Get());
-    context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-    context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-    context->GSSetShader(m_geometryShader.Get(), nullptr, 0);
-    context->HSSetShader(m_hullShader.Get(), nullptr, 0);
-    context->DSSetShader(m_domainShader.Get(), nullptr, 0);
-    context->CSSetShader(m_computeShader.Get(), nullptr, 0);
+    if (m_vertexShader != nullptr)
+        context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+    if (m_pixelShader != nullptr)
+        context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+    if (m_geometryShader != nullptr)
+        context->GSSetShader(m_geometryShader.Get(), nullptr, 0);
+    if (m_hullShader != nullptr)
+        context->HSSetShader(m_hullShader.Get(), nullptr, 0);
+    if (m_domainShader != nullptr)
+        context->DSSetShader(m_domainShader.Get(), nullptr, 0);
+    if (m_computeShader != nullptr)
+        context->CSSetShader(m_computeShader.Get(), nullptr, 0);
 }
 
 bool Shader::CreateConstantBuffer(ID3D11Device* device, const std::string& name, const CONSTANT_BUFFER_DESC& desc) {
