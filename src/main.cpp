@@ -246,14 +246,13 @@ int main() {
 		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}  // Texture Coordinates
 	};
-	UINT numElements = ARRAYSIZE(layout);
 
 	SHADER_DESC shaderDesc = {};
 	shaderDesc.vertexShaderPath = L"shaders/ColoredTexturedVertex_vs.hlsl";
 	shaderDesc.pixelShaderPath = L"shaders/ColoredTexturedVertex_ps.hlsl";
 	
 	Shader shaderTest;
-	shaderTest.Initialize(device, shaderDesc, layout, numElements);
+	shaderTest.Initialize(device, shaderDesc, layout);
 
 	CONSTANT_BUFFER_DESC cBufferDesc = {};
 	cBufferDesc.bufferSize = sizeof(DirectX::XMMATRIX);

@@ -61,13 +61,19 @@ class Shader {
         Shader() = default;
         ~Shader() = default;
 
-        bool Initialize(ID3D11Device* device, const SHADER_DESC& desc, const D3D11_INPUT_ELEMENT_DESC* layout, UINT numElements);
+        template <size_t N>
+        bool Initialize(ID3D11Device* device, const SHADER_DESC& desc, const D3D11_INPUT_ELEMENT_DESC(&layout)[N]) {
+            return InitializeShader(device, desc, layout, static_cast<UINT>(N));
+        }
+
         void SetShaders(ID3D11DeviceContext* context);
         bool CreateConstantBuffer(ID3D11Device* device, const std::string& name, const CONSTANT_BUFFER_DESC& desc);
         void UpdateConstantBuffer(ID3D11DeviceContext* context, const std::string& name, const void* data, size_t dataSize);
         void BindConstantBuffer(ID3D11DeviceContext* context, const std::string& name, UINT slot, UINT shaderFlags);
     
     private:
+        bool InitializeShader(ID3D11Device* device, const SHADER_DESC& desc, const D3D11_INPUT_ELEMENT_DESC* layout, UINT numElements);
+
         bool CompileShader(ID3D11Device* device, const std::optional<std::wstring>& filePath,
             const std::string& entryPoint, const std::string& target,
             Microsoft::WRL::ComPtr<ID3DBlob>& blob);

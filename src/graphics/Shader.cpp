@@ -8,8 +8,10 @@
 
 using namespace Microsoft::WRL;
 
-bool Shader::Initialize(ID3D11Device* device, const SHADER_DESC& desc, const D3D11_INPUT_ELEMENT_DESC* layout, UINT numElements) {
+
+bool Shader::InitializeShader(ID3D11Device* device, const SHADER_DESC& desc, const D3D11_INPUT_ELEMENT_DESC* layout, UINT numElements) {
     ComPtr<ID3DBlob> blob;
+
     if (desc.vertexShaderPath &&
         CompileShader(device, desc.vertexShaderPath, desc.vertexEntryPoint, desc.vertexTarget, blob) &&
         CreateShader(device, blob, m_vertexShader)) {
