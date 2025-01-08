@@ -207,3 +207,97 @@ void Shader::BindConstantBuffer(ID3D11DeviceContext* context, const std::string&
         context->CSSetConstantBuffers(slot, 1, &buffer);
     }
 }
+
+bool Shader::CreateShaderResourceView(const std::string& name, ID3D11ShaderResourceView* srv) {
+    if (m_shaderResourceViews.count(name)) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_WARNING, "Shader resource view already exists: " + name);
+        return false;
+    }
+
+    m_shaderResourceViews[name] = srv;
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Added shader resource view: " + name);
+    return true;
+}
+
+bool Shader::CreateSamplerState(const std::string& name, ID3D11SamplerState* sampler) {
+    if (m_samplerStates.count(name)) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_WARNING, "Sampler state already exists: " + name);
+        return false;
+    }
+
+    m_samplerStates[name] = sampler;
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Added sampler state: " + name);
+    return true;
+}
+
+void Shader::BindShaderResourceView(ID3D11DeviceContext* context, const std::string& name, UINT slot, UINT shaderFlags) {
+    auto it = m_shaderResourceViews.find(name);
+    if (it == m_shaderResourceViews.end()) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Shader resource view not found: " + name);
+        return;
+    }
+
+    ID3D11ShaderResourceView* srv = it->second.Get();
+
+    // Validate shader flags
+    if (shaderFlags == 0) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Invalid shader flags for SRV: " + name);
+        return;
+    }
+
+    // Bind SRV to the appropriate shader stages
+    if (shaderFlags & ShaderStage::VertexShader) {
+        context->VSSetShaderResources(slot, 1, &srv);
+    }
+    if (shaderFlags & ShaderStage::PixelShader) {
+        context->PSSetShaderResources(slot, 1, &srv);
+    }
+    if (shaderFlags & ShaderStage::GeometryShader) {
+        context->GSSetShaderResources(slot, 1, &srv);
+    }
+    if (shaderFlags & ShaderStage::HullShader) {
+        context->HSSetShaderResources(slot, 1, &srv);
+    }
+    if (shaderFlags & ShaderStage::DomainShader) {
+        context->DSSetShaderResources(slot, 1, &srv);
+    }
+    if (shaderFlags & ShaderStage::ComputeShader) {
+        context->CSSetShaderResources(slot, 1, &srv);
+    }
+}
+
+void Shader::BindSamplerState(ID3D11DeviceContext* context, const std::string& name, UINT slot, UINT shaderFlags) {
+    auto it = m_samplerStates.find(name);
+    if (it == m_samplerStates.end()) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Sampler state not found: " + name);
+        return;
+    }
+
+    ID3D11SamplerState* sampler = it->second.Get();
+
+    // Validate shader flags
+    if (shaderFlags == 0) {
+        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Invalid shader flags for sampler: " + name);
+        return;
+    }
+
+    // Bind sampler to the appropriate shader stages
+    if (shaderFlags & ShaderStage::VertexShader) {
+        context->VSSetSamplers(slot, 1, &sampler);
+    }
+    if (shaderFlags & ShaderStage::PixelShader) {
+        context->PSSetSamplers(slot, 1, &sampler);
+    }
+    if (shaderFlags & ShaderStage::GeometryShader) {
+        context->GSSetSamplers(slot, 1, &sampler);
+    }
+    if (shaderFlags & ShaderStage::HullShader) {
+        context->HSSetSamplers(slot, 1, &sampler);
+    }
+    if (shaderFlags & ShaderStage::DomainShader) {
+        context->DSSetSamplers(slot, 1, &sampler);
+    }
+    if (shaderFlags & ShaderStage::ComputeShader) {
+        context->CSSetSamplers(slot, 1, &sampler);
+    }
+}

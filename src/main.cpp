@@ -331,9 +331,13 @@ int main() {
 	device->CreateSamplerState(&ImageSamplerDesc,
 		&ImageSamplerState);
 	
-	// set texture and sampler
-	deviceContext->PSSetShaderResources(0, 1, &ImageShaderResourceView);
-	deviceContext->PSSetSamplers(0, 1, &ImageSamplerState);
+	// Assuming a Shader instance `shader` and valid SRV and sampler are created:
+	shaderTest.CreateShaderResourceView("diffuseTexture", ImageShaderResourceView);
+	shaderTest.CreateSamplerState("samplerState", ImageSamplerState);
+
+	// Binding SRV and Sampler to Pixel Shader slot 0
+	shaderTest.BindShaderResourceView(deviceContext, "diffuseTexture", 0, ShaderStage::PixelShader);
+	shaderTest.BindSamplerState(deviceContext, "samplerState", 0, ShaderStage::PixelShader);
 
 		/// Let's try initialize ImGui
 	// Setup Dear ImGui context

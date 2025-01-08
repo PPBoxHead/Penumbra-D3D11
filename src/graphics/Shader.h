@@ -67,9 +67,15 @@ class Shader {
         }
 
         void SetShaders(ID3D11DeviceContext* context);
+
         bool CreateConstantBuffer(ID3D11Device* device, const std::string& name, const CONSTANT_BUFFER_DESC& desc);
         void UpdateConstantBuffer(ID3D11DeviceContext* context, const std::string& name, const void* data, size_t dataSize);
         void BindConstantBuffer(ID3D11DeviceContext* context, const std::string& name, UINT slot, UINT shaderFlags);
+
+        bool CreateShaderResourceView(const std::string& name, ID3D11ShaderResourceView* srv);
+        bool CreateSamplerState(const std::string& name, ID3D11SamplerState* sampler);
+        void BindShaderResourceView(ID3D11DeviceContext* context, const std::string& name, UINT slot, UINT shaderFlags);
+        void BindSamplerState(ID3D11DeviceContext* context, const std::string& name, UINT slot, UINT shaderFlags);
     
     private:
         bool InitializeShader(ID3D11Device* device, const SHADER_DESC& desc, const D3D11_INPUT_ELEMENT_DESC* layout, UINT numElements);
@@ -90,8 +96,10 @@ class Shader {
         Microsoft::WRL::ComPtr<ID3D11ComputeShader> m_computeShader;
 
         Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
-        std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11Buffer>> m_constantBuffers;
 
+        std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11Buffer>> m_constantBuffers;
+        std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_shaderResourceViews;
+        std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11SamplerState>> m_samplerStates;
 };
 
 #endif // !SHADER_H
