@@ -373,7 +373,7 @@ int main() {
 		renderDevice->StartFrame(clearColor);
 
 		// Update the rotation angle
-		angle += 0.01f;
+		angle += 1.0f * m_Delta;
 
 		// Update constant buffer
 		UpdateRotation(shaderTest, deviceContext, angle);
