@@ -29,9 +29,13 @@ At the moment of writing this *(2024/12/25)*, there's not almost any feature to 
     - DDGI (Dynamic Diffuse Global Illumination)
 
 
-## Build and Run
-
-The project is intended to be used on Windows 10 or later that supports DirectX 11, **There's not any support to build on platforms out of Windows.**
+## Dependencies, Build and Run
+Note that you need to have:
+- Windows 10 SDK
+- Git
 
 The only requirements to be able to build is have `Visual Studio 2022`, you download the repository project, open the `Penumbra-D3D11.sln` and hit `F5`.
+Most of the 3rd-party dependencies are included as git submodules, so, once you download the repository, open the command prompt in the project folder and run `git submodule update --init --recursive`
+  
+The project is intended to be used on Windows 10 or later that supports DirectX 11, **There's not any support to build on platforms out of Windows.**
 
