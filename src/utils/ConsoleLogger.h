@@ -54,8 +54,8 @@ class ConsoleLogger {
 
 				switch (log) {
 				case LogType::C_CRITICAL_ERROR:
-					// Unlock the mutex before throwing
-					break; // Exit the scope of lock_guard
+					std::cerr << "\033[31m[CRITICAL ERROR]::\033[0m " << oss.str() << std::endl;
+					break;
 				case LogType::C_ERROR:
 					std::cerr << "\033[31m[ERROR]::\033[0m " << oss.str() << std::endl;
 					break;
@@ -93,6 +93,20 @@ class ConsoleLogger {
 		// Mutex for thread-safe logging
 		static inline std::mutex consoleMutex;
 };
+
+
+#define CONSOLE_LOG_CRITICAL_ERROR(...) \
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "[File: " __FILE__ ", Line: " + std::to_string(__LINE__) + "] ", __VA_ARGS__)
+
+#define CONSOLE_LOG_ERROR(...) \
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "[File: " __FILE__ ", Line: " + std::to_string(__LINE__) + "] ", __VA_ARGS__)
+
+#define CONSOLE_LOG_WARNING(...) \
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_WARNING, __VA_ARGS__)
+
+#define CONSOLE_LOG_INFO(...) \
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, __VA_ARGS__)
+
 
 #endif // !CONSOLE_LOG_H
 

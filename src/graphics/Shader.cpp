@@ -25,7 +25,7 @@ bool Shader::InitializeShader(ID3D11Device* device, const SHADER_DESC& desc, con
         );
 
         if (FAILED(result)) {
-            ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Failed to create input layout.");
+            CONSOLE_LOG_ERROR("Failed to create input layout.");
             return false;
         }
     }
@@ -138,7 +138,7 @@ void Shader::SetShaders(ID3D11DeviceContext* context) {
 
 bool Shader::CreateConstantBuffer(ID3D11Device* device, const std::string& name, const CONSTANT_BUFFER_DESC& desc) {
     if (m_constantBuffers.count(name)) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Constant buffer already exists: " + name);
+        CONSOLE_LOG_CRITICAL_ERROR("Constant buffer already exists: " + name);
     }
 
     D3D11_BUFFER_DESC bufferDesc{};
@@ -149,7 +149,7 @@ bool Shader::CreateConstantBuffer(ID3D11Device* device, const std::string& name,
 
     ComPtr<ID3D11Buffer> buffer;
     if (FAILED(device->CreateBuffer(&bufferDesc, nullptr, &buffer))) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Constant bufer with name: ", name, " couldn't be created");
+        CONSOLE_LOG_ERROR("Constant bufer with name: ", name, " couldn't be created");
         return false;
     }
 
@@ -178,14 +178,14 @@ void Shader::BindConstantBuffer(ID3D11DeviceContext* context, const std::string&
 {
     auto it = m_constantBuffers.find(name);
     if (it == m_constantBuffers.end()) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Constant buffer not found: " + name);
+        CONSOLE_LOG_CRITICAL_ERROR("Constant buffer not found: " + name);
     }
 
     ID3D11Buffer* buffer = it->second.Get();
 
     // Validate shader flags
     if (shaderFlags == 0) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Invalid shader flags for constant buffer: " + name);
+        CONSOLE_LOG_CRITICAL_ERROR("Invalid shader flags for constant buffer: " + name);
     }
     // Use custom flags to decide where to bind the constant buffer
     if (shaderFlags & ShaderStage::VertexShader) {
@@ -210,30 +210,30 @@ void Shader::BindConstantBuffer(ID3D11DeviceContext* context, const std::string&
 
 bool Shader::CreateShaderResourceView(const std::string& name, ID3D11ShaderResourceView* srv) {
     if (m_shaderResourceViews.count(name)) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_WARNING, "Shader resource view already exists: " + name);
+        CONSOLE_LOG_WARNING("Shader resource view already exists: " + name);
         return false;
     }
 
     m_shaderResourceViews[name] = srv;
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Added shader resource view: " + name);
+    //ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Added shader resource view: " + name);
     return true;
 }
 
 bool Shader::CreateSamplerState(const std::string& name, ID3D11SamplerState* sampler) {
     if (m_samplerStates.count(name)) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_WARNING, "Sampler state already exists: " + name);
+        CONSOLE_LOG_WARNING("Sampler state already exists: " + name);
         return false;
     }
 
     m_samplerStates[name] = sampler;
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Added sampler state: " + name);
+    //ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Added sampler state: " + name);
     return true;
 }
 
 void Shader::BindShaderResourceView(ID3D11DeviceContext* context, const std::string& name, UINT slot, UINT shaderFlags) {
     auto it = m_shaderResourceViews.find(name);
     if (it == m_shaderResourceViews.end()) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Shader resource view not found: " + name);
+        CONSOLE_LOG_CRITICAL_ERROR("Shader resource view not found: " + name);
         return;
     }
 
@@ -241,7 +241,7 @@ void Shader::BindShaderResourceView(ID3D11DeviceContext* context, const std::str
 
     // Validate shader flags
     if (shaderFlags == 0) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Invalid shader flags for SRV: " + name);
+        CONSOLE_LOG_CRITICAL_ERROR("Invalid shader flags for SRV: " + name);
         return;
     }
 
@@ -269,7 +269,7 @@ void Shader::BindShaderResourceView(ID3D11DeviceContext* context, const std::str
 void Shader::BindSamplerState(ID3D11DeviceContext* context, const std::string& name, UINT slot, UINT shaderFlags) {
     auto it = m_samplerStates.find(name);
     if (it == m_samplerStates.end()) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Sampler state not found: " + name);
+        CONSOLE_LOG_CRITICAL_ERROR("Sampler state not found: " + name);
         return;
     }
 
@@ -277,7 +277,7 @@ void Shader::BindSamplerState(ID3D11DeviceContext* context, const std::string& n
 
     // Validate shader flags
     if (shaderFlags == 0) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_CRITICAL_ERROR, "Invalid shader flags for sampler: " + name);
+        CONSOLE_LOG_CRITICAL_ERROR("Invalid shader flags for sampler: " + name);
         return;
     }
 

@@ -100,7 +100,7 @@ void RenderImGuiPerformance() {
 	ImGui::Text("Average FPS: %.2f", m_AvgFPS); // Display the FPS with one decimal point
 	ImGui::Text("Total Frame Time: %.4f ms", totalFrameTime);
 	ImGui::Text("Last Delta: %.4f ms", m_Delta * 1000.0f); // Display frame time in milliseconds
-	ImGui::Text("Window Size: %ix%ipx", renderDevice->m_windowWidth, renderDevice->m_windowHeight); // Display frame time in milliseconds
+	ImGui::Text("Window Size: %ix%ipx", renderDevice->windowWidth, renderDevice->windowHeight); // Display frame time in milliseconds
 	if (ImGui::CollapsingHeader("GPU Data", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("GPU Vendor: %s", renderDevice->videoCardDescription);
 		ImGui::Text("GPU frame time: %.4f ms", renderDevice->gpuFrameTime);
@@ -358,7 +358,6 @@ int main() {
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 
-
 		UpdateFPS();
 		cpuStartTime = std::chrono::high_resolution_clock::now();
 
@@ -373,7 +372,7 @@ int main() {
 		renderDevice->StartFrame(clearColor);
 
 		// Update the rotation angle
-		angle += 1.0f * m_Delta;
+		angle += 1.0f * float(m_Delta);
 
 		// Update constant buffer
 		UpdateRotation(shaderTest, deviceContext, angle);

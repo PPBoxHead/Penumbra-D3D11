@@ -11,10 +11,11 @@ extern "C" {
     _declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
 
+using namespace Microsoft::WRL;
 
 RenderDeviceD3D11::RenderDeviceD3D11(int t_window_width, int t_window_height, HWND t_hwnd) {
-    m_windowWidth = t_window_width;
-    m_windowHeight = t_window_height;
+    windowWidth = t_window_width;
+    windowHeight = t_window_height;
 
     InitD3D11(t_hwnd);
 }
@@ -24,7 +25,7 @@ RenderDeviceD3D11::~RenderDeviceD3D11() {
         m_deviceContext->ClearState(); // Break bindings to avoid reference cycles
     }
 
-    Microsoft::WRL::ComPtr<ID3D11Debug> debugDevice;
+    ComPtr<ID3D11Debug> debugDevice;
     if (SUCCEEDED(m_device->QueryInterface(IID_PPV_ARGS(&debugDevice)))) {
         debugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
     }
@@ -33,9 +34,94 @@ RenderDeviceD3D11::~RenderDeviceD3D11() {
 ID3D11Device* RenderDeviceD3D11::GetDevice() {
     return m_device.Get();
 }
-
 ID3D11DeviceContext* RenderDeviceD3D11::GetDeviceContext() {
     return m_deviceContext.Get();
+}
+
+IDXGISwapChain* RenderDeviceD3D11::GetSwapchain() {
+    return m_swapChain.Get();
+}
+
+ID3D11RenderTargetView* RenderDeviceD3D11::GetRenderTargetView() {
+    return m_renderTargetView.Get();
+}
+ID3D11DepthStencilView* RenderDeviceD3D11::GetDepthStencilView() {
+    return m_depthStencilView.Get();
+}
+
+// Frame lifecycle
+void RenderDeviceD3D11::StartFrame(const std::array<float, 4>& clearColor) {
+    // Bind the render target view and depth/stencil view
+    m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+
+    // Clear the Render Target View
+    m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor.data());
+    // Clear the Depth-Stencil View
+    m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+    // Start GPU frame timing
+    m_deviceContext->Begin(m_disjointQuery.Get());
+    m_deviceContext->End(m_startQuery.Get());
+}
+void RenderDeviceD3D11::PresentFrame() {
+    // End GPU frame timing
+    m_deviceContext->End(m_endQuery.Get());
+    m_deviceContext->End(m_disjointQuery.Get());
+
+    // Retrieve and calculate GPU frame time
+    D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjointData;
+    while (m_deviceContext->GetData(m_disjointQuery.Get(), &disjointData, sizeof(disjointData), 0) == S_FALSE);
+
+    if (!disjointData.Disjoint) {
+        UINT64 startTime = 0, endTime = 0;
+        while (m_deviceContext->GetData(m_startQuery.Get(), &startTime, sizeof(startTime), 0) == S_FALSE);
+        while (m_deviceContext->GetData(m_endQuery.Get(), &endTime, sizeof(endTime), 0) == S_FALSE);
+
+        gpuFrameTime = static_cast<float>(endTime - startTime) / disjointData.Frequency * 1000.0f;
+    }
+    else {
+        gpuFrameTime = -1.0f; // Indicate invalid GPU timing
+    }
+
+    m_swapChain->Present(is_vsync_enabled ? 1 : 0, 0);
+}
+
+void RenderDeviceD3D11::Resize(int newWidth, int newHeight) {
+    if (newWidth <= 0 || newHeight <= 0) return;
+
+    // Update window dimensions
+    windowWidth = newWidth;
+    windowHeight = newHeight;
+
+    // Release current resources
+    m_renderTargetView.Reset();
+    m_depthStencilView.Reset();
+    m_depthStencilBuffer.Reset();
+    m_backBuffer.Reset();
+
+    UINT swapchainFlags = 0;
+    if (is_vsync_enabled)
+        swapchainFlags = 0;
+    else
+        swapchainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+
+    // Resize the swap chain
+    HRESULT result = m_swapChain->ResizeBuffers(
+        0, // Preserve buffer count
+        windowWidth,
+        windowHeight,
+        DXGI_FORMAT_UNKNOWN,
+        swapchainFlags
+    );
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to resize swap chain.");
+    }
+
+    // Recreate resources
+    CreateRenderTargetView();
+    CreateRenderPipeline();
+    SetupViewport();
 }
 
 void RenderDeviceD3D11::GetVRAMInfo() {
@@ -52,12 +138,14 @@ void RenderDeviceD3D11::InitD3D11(HWND t_hwnd) {
         SetupHardwareAdapter();
         InitializeDeviceAndContext();
         CreateSwapChain(t_hwnd);
-        Resize(m_windowWidth, m_windowHeight); // Handles resource creation
+        CreateRenderTargetView();
+        CreateRenderPipeline();
+        SetupViewport();
         InitializeGPUQuery();
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "DirectX 11 initialization complete.");
+        CONSOLE_LOG_INFO("DirectX 11 initialization complete.");
     }
     catch (const std::exception& ex) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "DirectX 11 initialization failed: ", ex.what());
+        CONSOLE_LOG_ERROR("DirectX 11 initialization failed: ", ex.what());
         throw;
     }
 
@@ -115,8 +203,8 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
     m_numerator = 0;
     m_denominator = 1; // Defaults to uncapped
     for (const auto& mode : displayModeList) {
-        if (mode.Width == static_cast<UINT>(m_windowWidth) &&
-            mode.Height == static_cast<UINT>(m_windowHeight)) {
+        if (mode.Width == static_cast<UINT>(windowWidth) &&
+            mode.Height == static_cast<UINT>(windowHeight)) {
             m_numerator = mode.RefreshRate.Numerator;
             m_denominator = mode.RefreshRate.Denominator;
             break;
@@ -125,8 +213,7 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
 
     // Log a warning if no matching mode was found
     if (m_numerator == 0) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_WARNING,
-            "No matching display mode found. Using uncapped refresh rate.");
+        CONSOLE_LOG_WARNING("No matching display mode found. Using uncapped refresh rate.");
     }
 
     // Retrieve adapter description for debugging purposes
@@ -142,16 +229,16 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
     videoCardSharedSystemMemory = static_cast<int>(adapterDesc.SharedSystemMemory / 1024 / 1024);
     size_t stringLength = 0;
     if (wcstombs_s(&stringLength, videoCardDescription, 128, adapterDesc.Description, 128) != 0) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Failed to convert video card description.");
+        CONSOLE_LOG_ERROR("Failed to convert video card description.");
     }
 
     // Debug logging for adapter information
 #if defined(_DEBUG)
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card dedicated memory (VRAM): ",
+    CONSOLE_LOG_INFO("Video Card dedicated memory (VRAM): ",
         videoCardDedicatedMemory, "MB");
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card shared system memory (RAM): ",
+    CONSOLE_LOG_INFO("Video Card shared system memory (RAM): ",
         videoCardSharedSystemMemory, "MB");
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Video Card description: ", videoCardDescription);
+    CONSOLE_LOG_INFO("Video Card description: ", videoCardDescription);
 #endif
 
 }
@@ -202,8 +289,8 @@ void RenderDeviceD3D11::CreateSwapChain(HWND t_hwnd) {
     // Double buffering
     swapChainDesc.BufferCount = 2;
 
-    swapChainDesc.BufferDesc.Width = m_windowWidth;
-    swapChainDesc.BufferDesc.Height = m_windowHeight;
+    swapChainDesc.BufferDesc.Width = windowWidth;
+    swapChainDesc.BufferDesc.Height = windowHeight;
     // RGBA 32-bit
     swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; 
 
@@ -255,8 +342,8 @@ void RenderDeviceD3D11::CreateRenderTargetView() {
 void RenderDeviceD3D11::CreateRenderPipeline() {
     // Create Depth-Stencil Buffer
     D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
-    depthStencilBufferDesc.Width = m_windowWidth;  // Set width and height of the buffer
-    depthStencilBufferDesc.Height = m_windowHeight;
+    depthStencilBufferDesc.Width = windowWidth;  // Set width and height of the buffer
+    depthStencilBufferDesc.Height = windowHeight;
 
     depthStencilBufferDesc.MipLevels = 1;
     depthStencilBufferDesc.ArraySize = 1;
@@ -342,7 +429,7 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
 
     // Bind Render Target and Depth-Stencil Views
     if (!m_renderTargetView || !m_depthStencilView) {
-        ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, "Render target or depth stencil view is uninitialized.");
+        CONSOLE_LOG_ERROR("Render target or depth stencil view is uninitialized.");
         return;
     }
     m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
@@ -351,8 +438,8 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
 void RenderDeviceD3D11::SetupViewport() {
     m_viewport.TopLeftX = 0.0f;
     m_viewport.TopLeftY = 0.0f;
-    m_viewport.Width = static_cast<FLOAT>(m_windowWidth);
-    m_viewport.Height = static_cast<FLOAT>(m_windowHeight);
+    m_viewport.Width = static_cast<FLOAT>(windowWidth);
+    m_viewport.Height = static_cast<FLOAT>(windowHeight);
     m_viewport.MinDepth = 0.0f;
     m_viewport.MaxDepth = 1.0f;
 
@@ -368,87 +455,11 @@ void RenderDeviceD3D11::InitializeGPUQuery() {
     m_device->CreateQuery(&queryDesc, &m_endQuery);
 }
 
-
-// Frame lifecycle
-void RenderDeviceD3D11::StartFrame(const std::array<float, 4>& clearColor) {
-    // Bind the render target view and depth/stencil view
-    m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
-
-    // Clear the Render Target View
-	m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor.data());
-    // Clear the Depth-Stencil View
-    m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-    // Start GPU frame timing
-    m_deviceContext->Begin(m_disjointQuery.Get());
-    m_deviceContext->End(m_startQuery.Get());
-}
-void RenderDeviceD3D11::PresentFrame() {
-    // End GPU frame timing
-    m_deviceContext->End(m_endQuery.Get());
-    m_deviceContext->End(m_disjointQuery.Get());
-
-    // Retrieve and calculate GPU frame time
-    D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjointData;
-    while (m_deviceContext->GetData(m_disjointQuery.Get(), &disjointData, sizeof(disjointData), 0) == S_FALSE);
-
-    if (!disjointData.Disjoint) {
-        UINT64 startTime = 0, endTime = 0;
-        while (m_deviceContext->GetData(m_startQuery.Get(), &startTime, sizeof(startTime), 0) == S_FALSE);
-        while (m_deviceContext->GetData(m_endQuery.Get(), &endTime, sizeof(endTime), 0) == S_FALSE);
-
-        gpuFrameTime = static_cast<float>(endTime - startTime) / disjointData.Frequency * 1000.0f;
-    }
-    else {
-        gpuFrameTime = -1.0f; // Indicate invalid GPU timing
-    }
-
-        m_swapChain->Present(is_vsync_enabled ? 1 : 0, 0);
-}
-
-void RenderDeviceD3D11::Resize(int newWidth, int newHeight) {
-    if (newWidth <= 0 || newHeight <= 0) return;
-
-    // Update window dimensions
-    m_windowWidth = newWidth;
-    m_windowHeight = newHeight;
-
-    // Release current resources
-    m_renderTargetView.Reset();
-    m_depthStencilView.Reset();
-    m_depthStencilBuffer.Reset();
-    m_backBuffer.Reset();
-    
-    UINT swapchainFlags = 0;
-    if (is_vsync_enabled)
-        swapchainFlags = 0;
-    else
-        swapchainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-
-
-    // Resize the swap chain
-    HRESULT result = m_swapChain->ResizeBuffers(
-        0, // Preserve buffer count
-        m_windowWidth,
-        m_windowHeight,
-        DXGI_FORMAT_UNKNOWN,
-        swapchainFlags
-    );
-    if (FAILED(result)) {
-        LogHRESULTError(result, "Failed to resize swap chain.");
-    }
-
-    // Recreate resources
-    CreateRenderTargetView();
-    CreateRenderPipeline();
-    SetupViewport();
-}
-
 void RenderDeviceD3D11::LogHRESULTError(HRESULT hr, const char* message) {
 	char buffer[512];
 	FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		nullptr, hr, 0, buffer, sizeof(buffer), nullptr);
-	ConsoleLogger::Print(ConsoleLogger::LogType::C_ERROR, message, buffer);
+    CONSOLE_LOG_CRITICAL_ERROR(message, buffer);
 
     exit(EXIT_FAILURE);
 }
