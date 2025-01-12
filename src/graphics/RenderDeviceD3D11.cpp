@@ -17,7 +17,9 @@ RenderDeviceD3D11::RenderDeviceD3D11(int t_window_width, int t_window_height, HW
     m_windowWidth = t_window_width;
     m_windowHeight = t_window_height;
 
-    InitializeD3D11(t_hwnd);
+    m_hwnd = t_hwnd;
+
+    InitializeD3D11();
 }
 
 RenderDeviceD3D11::~RenderDeviceD3D11() {
@@ -28,6 +30,93 @@ RenderDeviceD3D11::~RenderDeviceD3D11() {
     ComPtr<ID3D11Debug> debugDevice;
     if (SUCCEEDED(m_device->QueryInterface(IID_PPV_ARGS(&debugDevice)))) {
         debugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+    }
+}
+
+// Frame lifecycle
+void RenderDeviceD3D11::StartFrame(const std::array<float, 4>& clearColor) {
+    // Bind the render target view and depth/stencil view
+    m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+
+    // Clear the Render Target View
+    m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor.data());
+    // Clear the Depth-Stencil View
+    m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+    // Start GPU frame timing
+    m_deviceContext->Begin(m_disjointQuery.Get());
+    m_deviceContext->End(m_startQuery.Get());
+}
+void RenderDeviceD3D11::PresentFrame() {
+    // End GPU frame timing
+    m_deviceContext->End(m_endQuery.Get());
+    m_deviceContext->End(m_disjointQuery.Get());
+
+    // Retrieve and calculate GPU frame time
+    D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjointData;
+    while (m_deviceContext->GetData(m_disjointQuery.Get(), &disjointData, sizeof(disjointData), 0) == S_FALSE);
+
+    if (!disjointData.Disjoint) {
+        UINT64 startTime = 0, endTime = 0;
+        while (m_deviceContext->GetData(m_startQuery.Get(), &startTime, sizeof(startTime), 0) == S_FALSE);
+        while (m_deviceContext->GetData(m_endQuery.Get(), &endTime, sizeof(endTime), 0) == S_FALSE);
+
+        gpuFrameTime = static_cast<float>(endTime - startTime) / disjointData.Frequency * 1000.0f;
+    }
+    else {
+        gpuFrameTime = -1.0f; // Indicate invalid GPU timing
+    }
+
+    // Present the frame
+    UINT syncInterval = m_vsyncEnabled ? 1 : 0; // 1 for VSync, 0 for no VSync
+    UINT presentFlags = m_vsyncEnabled ? 0 : DXGI_PRESENT_ALLOW_TEARING;
+
+    HRESULT result = m_swapChain->Present(syncInterval, presentFlags);
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to present the swap chain.");
+        return;
+    }
+}
+
+void RenderDeviceD3D11::Resize(int newWidth, int newHeight) {
+    if (newWidth <= 0 || newHeight <= 0) return;
+
+    // Update window dimensions
+    m_windowWidth = newWidth;
+    m_windowHeight = newHeight;
+
+    // Release current resources
+    m_renderTargetView.Reset();
+    m_depthStencilView.Reset();
+    m_depthStencilBuffer.Reset();
+    m_backBuffer.Reset();
+
+    UINT flags = (m_tearingSupported && !m_vsyncEnabled) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+
+    // Resize the swap chain
+    HRESULT result = m_swapChain->ResizeBuffers(
+        0, // Preserve buffer count
+        m_windowWidth,
+        m_windowHeight,
+        DXGI_FORMAT_UNKNOWN,
+        flags
+    );
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to resize swap chain.");
+        return;
+    }
+
+    // Recreate resources
+    CreateRenderTargetView();
+    CreateRenderPipeline();
+    SetupViewport();
+}
+
+void RenderDeviceD3D11::QueryVRAMInfo() {
+    HRESULT result = m_adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &m_videoMemoryInfo);
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to query video memory information.");
+        return;
     }
 }
 
@@ -64,96 +153,40 @@ int RenderDeviceD3D11::GetWindowHeight() {
     return m_windowHeight;
 }
 
-
-// Frame lifecycle
-void RenderDeviceD3D11::StartFrame(const std::array<float, 4>& clearColor) {
-    // Bind the render target view and depth/stencil view
-    m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
-
-    // Clear the Render Target View
-    m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor.data());
-    // Clear the Depth-Stencil View
-    m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-    // Start GPU frame timing
-    m_deviceContext->Begin(m_disjointQuery.Get());
-    m_deviceContext->End(m_startQuery.Get());
+bool RenderDeviceD3D11::IsVSyncEnabled() {
+    return m_vsyncEnabled;
 }
-void RenderDeviceD3D11::PresentFrame() {
-    // End GPU frame timing
-    m_deviceContext->End(m_endQuery.Get());
-    m_deviceContext->End(m_disjointQuery.Get());
-
-    // Retrieve and calculate GPU frame time
-    D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjointData;
-    while (m_deviceContext->GetData(m_disjointQuery.Get(), &disjointData, sizeof(disjointData), 0) == S_FALSE);
-
-    if (!disjointData.Disjoint) {
-        UINT64 startTime = 0, endTime = 0;
-        while (m_deviceContext->GetData(m_startQuery.Get(), &startTime, sizeof(startTime), 0) == S_FALSE);
-        while (m_deviceContext->GetData(m_endQuery.Get(), &endTime, sizeof(endTime), 0) == S_FALSE);
-
-        gpuFrameTime = static_cast<float>(endTime - startTime) / disjointData.Frequency * 1000.0f;
-    }
-    else {
-        gpuFrameTime = -1.0f; // Indicate invalid GPU timing
-    }
-
-    m_swapChain->Present(m_vsyncEnabled ? 1 : 0, 0);
-}
-
-void RenderDeviceD3D11::Resize(int newWidth, int newHeight) {
-    if (newWidth <= 0 || newHeight <= 0) return;
-
-    // Update window dimensions
-    m_windowWidth = newWidth;
-    m_windowHeight = newHeight;
+void RenderDeviceD3D11::SetVSyncEnabled(bool enabled) {
+    // Update the internal VSync state
+    m_vsyncEnabled = enabled;
 
     // Release current resources
+    m_swapChain.Reset();
     m_renderTargetView.Reset();
     m_depthStencilView.Reset();
     m_depthStencilBuffer.Reset();
     m_backBuffer.Reset();
 
-    UINT swapchainFlags = 0;
-    if (m_vsyncEnabled)
-        swapchainFlags = 0;
-    else
-        swapchainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-
-
     // Resize the swap chain
-    HRESULT result = m_swapChain->ResizeBuffers(
-        0, // Preserve buffer count
-        m_windowWidth,
-        m_windowHeight,
-        DXGI_FORMAT_UNKNOWN,
-        swapchainFlags
-    );
-    if (FAILED(result)) {
-        LogHRESULTError(result, "Failed to resize swap chain.");
-    }
-
-    // Recreate resources
+    HRESULT result = CreateSwapChain();
     CreateRenderTargetView();
     CreateRenderPipeline();
     SetupViewport();
-}
 
-void RenderDeviceD3D11::QueryVRAMInfo() {
-    HRESULT result = m_adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &m_videoMemoryInfo);
     if (FAILED(result)) {
-        LogHRESULTError(result, "Failed to query video memory information.");
+        LogHRESULTError(result, "Failed to resize swap chain during VSync toggle.");
+        return;
     }
 }
 
 // D3D11 Initialization pipeline
-void RenderDeviceD3D11::InitializeD3D11(HWND t_hwnd) {
+void RenderDeviceD3D11::InitializeD3D11() {
     try {
         CreateFactory();
+        CheckTearingSupport();
         SetupHardwareAdapter();
         InitializeDeviceAndContext();
-        CreateSwapChain(t_hwnd);
+        CreateSwapChain();
         CreateRenderTargetView();
         CreateRenderPipeline();
         SetupViewport();
@@ -168,9 +201,28 @@ void RenderDeviceD3D11::InitializeD3D11(HWND t_hwnd) {
 }
 // Creates the DXGI Factory
 void RenderDeviceD3D11::CreateFactory() {
-    HRESULT result = CreateDXGIFactory1(__uuidof(IDXGIFactory4), (void**)&m_factory);
+    HRESULT result = CreateDXGIFactory1(__uuidof(IDXGIFactory5), (void**)&m_factory);
     if (FAILED(result))
         LogHRESULTError(result, "Failed to create DXGI Factory: ");
+}
+// Check if OS has Tearing Support for Vsync
+void RenderDeviceD3D11::CheckTearingSupport() {
+    ComPtr<IDXGIFactory5> factory5;
+    HRESULT result = m_factory->QueryInterface(IID_PPV_ARGS(&factory5));
+    if (FAILED(result)) {
+        CONSOLE_LOG_WARNING("DXGI Factory does not support CheckFeatureSupport.");
+        m_tearingSupported = false;
+        return;
+    }
+
+    BOOL allowTearing = FALSE;
+    result = factory5->CheckFeatureSupport(
+        DXGI_FEATURE_PRESENT_ALLOW_TEARING,
+        &allowTearing,
+        sizeof(allowTearing)
+    );
+
+    m_tearingSupported = SUCCEEDED(result) && allowTearing;
 }
 // Enumerate the hardware adapter
 void RenderDeviceD3D11::SetupHardwareAdapter() {
@@ -298,7 +350,7 @@ void RenderDeviceD3D11::InitializeDeviceAndContext() {
         LogHRESULTError(result, "Failed to create Direct3D device: ");
 }
 // Create the swapchain desc and setup the swapchain
-void RenderDeviceD3D11::CreateSwapChain(HWND t_hwnd) {
+HRESULT RenderDeviceD3D11::CreateSwapChain() {
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
 
     // Double buffering
@@ -309,14 +361,23 @@ void RenderDeviceD3D11::CreateSwapChain(HWND t_hwnd) {
     // RGBA 32-bit
     swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; 
 
+    // Configure tearing support
     if (m_vsyncEnabled) {
         swapChainDesc.BufferDesc.RefreshRate.Numerator = m_numerator;
         swapChainDesc.BufferDesc.RefreshRate.Denominator = m_denominator;
+        swapChainDesc.Flags = 0; // No tearing
     }
-    else {
+    else if (m_tearingSupported) {
         swapChainDesc.BufferDesc.RefreshRate.Numerator = 0;
         swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
         swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+    }
+    else {
+        CONSOLE_LOG_WARNING("Tearing is not supported. Defaulting to VSync.");
+        m_vsyncEnabled = true;
+        swapChainDesc.BufferDesc.RefreshRate.Numerator = m_numerator;
+        swapChainDesc.BufferDesc.RefreshRate.Denominator = m_denominator;
+        swapChainDesc.Flags = 0; // No tearing
     }
 
     // Set the usage of the back buffer.
@@ -325,7 +386,7 @@ void RenderDeviceD3D11::CreateSwapChain(HWND t_hwnd) {
     swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
     swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 
-    swapChainDesc.OutputWindow = t_hwnd;
+    swapChainDesc.OutputWindow = m_hwnd;
 
     swapChainDesc.SampleDesc.Count = 1; // No MSAA
     swapChainDesc.SampleDesc.Quality = 0;
@@ -341,6 +402,8 @@ void RenderDeviceD3D11::CreateSwapChain(HWND t_hwnd) {
         &swapChainDesc,
         m_swapChain.GetAddressOf()
     );
+
+    return result;
 }
 // Get the back buffer and create the render target view
 void RenderDeviceD3D11::CreateRenderTargetView() {

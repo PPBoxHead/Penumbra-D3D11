@@ -87,6 +87,7 @@ static void UpdateFPS() {
 std::chrono::high_resolution_clock::time_point cpuStartTime;
 float cpuFrameTime = 0.0f;
 
+bool setVsync = false;
 // Render ImGui FPS Counter
 static void RenderImGuiPerformance() {
 	renderDevice->QueryVRAMInfo();
@@ -101,6 +102,9 @@ static void RenderImGuiPerformance() {
 	ImGui::Text("Total Frame Time: %.4f ms", totalFrameTime);
 	ImGui::Text("Last Delta: %.4f ms", m_Delta * 1000.0f); // Display frame time in milliseconds
 	ImGui::Text("Window Size: %ix%ipx", renderDevice->GetWindowWidth(), renderDevice->GetWindowHeight()); // Display frame time in milliseconds
+	if (ImGui::Checkbox("VSync Enabled", &setVsync)) {
+		renderDevice->SetVSyncEnabled(setVsync);
+	}
 	if (ImGui::CollapsingHeader("GPU Data", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("GPU Vendor: %s", renderDevice->GetVideoCardDescription());
 		ImGui::Text("GPU frame time: %.4f ms", renderDevice->gpuFrameTime);
@@ -199,7 +203,7 @@ int main() {
 	
 
 	renderDevice = std::make_unique<RenderDeviceD3D11>(1280, 720, glfwGetWin32Window(window));
-
+	
 	/// How to render a colored quad in D3D11:
 	ID3D11Device* device = renderDevice->GetDevice(); // This is to call the creation of buffers with device->CreateBuffer() call
 	ID3D11DeviceContext* deviceContext = renderDevice->GetDeviceContext();

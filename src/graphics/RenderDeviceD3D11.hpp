@@ -4,7 +4,7 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 //#include <dxgi.h>
-#include <dxgi1_4.h>
+#include <dxgi1_5.h>
 #include <wrl/client.h> // For ComPtr
 #include <array>
 
@@ -39,6 +39,9 @@ public:
 	int GetWindowWidth();
 	int GetWindowHeight();
 
+	bool IsVSyncEnabled();
+	void SetVSyncEnabled(bool enabled);
+
 // Private Member Variables
 public:
 	int videoCardDedicatedMemory;
@@ -49,15 +52,17 @@ public:
 // Private Methods
 private:
 	// D3D11 Initialization pipeline
-	void InitializeD3D11(HWND t_hwnd);
+	void InitializeD3D11();
 	// Creates the DXGI Factory
 	void CreateFactory();
+	// Check if OS has Tearing Support for Vsync
+	void CheckTearingSupport();
 	// Enumerate the hardware adapter
 	void SetupHardwareAdapter();
 	// Create device and device context
 	void InitializeDeviceAndContext();
 	// Create the swapchain desc and setup the swapchain
-	void CreateSwapChain(HWND t_hwnd);
+	HRESULT CreateSwapChain();
 	// Get the back buffer and create the render target view
 	void CreateRenderTargetView();
 	// Creates the stencil desc and setup the Stencil State, but also render desc and the Rasterizer State
@@ -72,7 +77,9 @@ private:
 // Private Member Variables
 private:
 	bool m_vsyncEnabled = false;
+	bool m_tearingSupported = false;
 	
+	HWND m_hwnd;
 	int m_windowWidth;
 	int m_windowHeight;
 
@@ -83,7 +90,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Query> m_startQuery;
 	Microsoft::WRL::ComPtr<ID3D11Query> m_endQuery;
 
-	Microsoft::WRL::ComPtr<IDXGIFactory4> m_factory;
+	Microsoft::WRL::ComPtr<IDXGIFactory5> m_factory;
 
 	Microsoft::WRL::ComPtr<IDXGIAdapter3> m_adapter;
 	Microsoft::WRL::ComPtr<IDXGIOutput> m_adapterOutput;
