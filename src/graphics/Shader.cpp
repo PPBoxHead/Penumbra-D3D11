@@ -154,7 +154,7 @@ bool Shader::CreateConstantBuffer(ID3D11Device* device, const std::string& name,
     }
 
     m_constantBuffers[name] = buffer;
-    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Created constant buffer: ", m_constantBuffers.find(name)->first);
+    //ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Created constant buffer: ", m_constantBuffers.find(name)->first);
     return true;
 }
 

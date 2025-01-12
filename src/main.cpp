@@ -70,7 +70,7 @@ double m_AvgFPS = 0.0;
 std::vector<double> m_FrameTimes;
 
 
-void UpdateFPS() {
+static void UpdateFPS() {
 	auto currentFrameTime = std::chrono::high_resolution_clock::now();
 	m_Delta = std::chrono::duration<double>(currentFrameTime - m_LastFrameTime).count();
 	m_LastFrameTime = currentFrameTime;
@@ -88,10 +88,10 @@ std::chrono::high_resolution_clock::time_point cpuStartTime;
 float cpuFrameTime = 0.0f;
 
 // Render ImGui FPS Counter
-void RenderImGuiPerformance() {
-	renderDevice->GetVRAMInfo();
+static void RenderImGuiPerformance() {
+	renderDevice->QueryVRAMInfo();
 	// Calculate VRAM usage in MB
-	size_t usedVRAM = renderDevice->videoMemoryInfo.CurrentUsage / 1024 / 1024;  // In MB
+	size_t usedVRAM = renderDevice->GetVideoMemoryInfo().CurrentUsage / 1024 / 1024;  // In MB
 	float totalFrameTime = cpuFrameTime + renderDevice->gpuFrameTime;
 
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
@@ -100,9 +100,9 @@ void RenderImGuiPerformance() {
 	ImGui::Text("Average FPS: %.2f", m_AvgFPS); // Display the FPS with one decimal point
 	ImGui::Text("Total Frame Time: %.4f ms", totalFrameTime);
 	ImGui::Text("Last Delta: %.4f ms", m_Delta * 1000.0f); // Display frame time in milliseconds
-	ImGui::Text("Window Size: %ix%ipx", renderDevice->windowWidth, renderDevice->windowHeight); // Display frame time in milliseconds
+	ImGui::Text("Window Size: %ix%ipx", renderDevice->GetWindowWidth(), renderDevice->GetWindowHeight()); // Display frame time in milliseconds
 	if (ImGui::CollapsingHeader("GPU Data", ImGuiTreeNodeFlags_DefaultOpen)) {
-		ImGui::Text("GPU Vendor: %s", renderDevice->videoCardDescription);
+		ImGui::Text("GPU Vendor: %s", renderDevice->GetVideoCardDescription());
 		ImGui::Text("GPU frame time: %.4f ms", renderDevice->gpuFrameTime);
 		ImGui::Text("Graphics Adapter Dedicated VRAM: %i MB", renderDevice->videoCardDedicatedMemory);
 		ImGui::Text("Graphics Adapter Shared RAM: %i MB", renderDevice->videoCardSharedSystemMemory);
@@ -160,7 +160,7 @@ void RenderImGuiPerformance() {
 	ImGui::End();
 }
 
-void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
+static void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
 	// Store the new width and height, and mark the need to resize DirectX resources.
 	if (width > 0 && height > 0 && renderDevice)
@@ -169,7 +169,7 @@ void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 	}
 }
 
-void UpdateRotation(Shader& shader, ID3D11DeviceContext* context, float angle)
+static void UpdateRotation(Shader& shader, ID3D11DeviceContext* context, float angle)
 {
 	DirectX::XMMATRIX worldMatrix = DirectX::XMMatrixRotationAxis(DirectX::FXMVECTOR{0.0f, 0.0f, 1.0f}, angle);
 	worldMatrix = DirectX::XMMatrixTranspose(worldMatrix); // Transpose for HLSL compatibility

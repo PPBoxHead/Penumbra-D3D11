@@ -10,29 +10,18 @@
 
 
 class RenderDeviceD3D11 {
+// Public Methods
 public:
 	RenderDeviceD3D11(int t_window_width, int t_window_height, HWND t_window);
 	~RenderDeviceD3D11();
 
-	void GetVRAMInfo();
-
-	bool is_vsync_enabled = false;
-	int videoCardDedicatedMemory;
-	int videoCardSharedSystemMemory;
-	char videoCardDescription[128];
-	DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = {};
-	float gpuFrameTime = 0.0f;
-
-	int windowWidth;
-	int windowHeight;
-
-	// Public Methods
-public:
 	// Frame lifecycle
 	void StartFrame(const std::array<float, 4>& clearColor);
 	void PresentFrame();
 
 	void Resize(int newWidth, int newHeight);
+
+	void QueryVRAMInfo();
 
 	// Getters
 	ID3D11Device* GetDevice();
@@ -43,9 +32,24 @@ public:
 	ID3D11RenderTargetView* GetRenderTargetView();
 	ID3D11DepthStencilView* GetDepthStencilView();
 
+	DXGI_QUERY_VIDEO_MEMORY_INFO GetVideoMemoryInfo();
+
+	char* GetVideoCardDescription();
+
+	int GetWindowWidth();
+	int GetWindowHeight();
+
+// Private Member Variables
+public:
+	int videoCardDedicatedMemory;
+	int videoCardSharedSystemMemory;
+
+	float gpuFrameTime = 0.0f;
+
+// Private Methods
 private:
-	// This function calls all the next steps declarated in this header
-	void InitD3D11(HWND t_hwnd);
+	// D3D11 Initialization pipeline
+	void InitializeD3D11(HWND t_hwnd);
 	// Creates the DXGI Factory
 	void CreateFactory();
 	// Enumerate the hardware adapter
@@ -65,16 +69,28 @@ private:
 
 	void LogHRESULTError(HRESULT hr, const char* message);
 
+// Private Member Variables
 private:
+	bool m_vsyncEnabled = false;
+	
+	int m_windowWidth;
+	int m_windowHeight;
+
+	int m_renderWidth;
+	int m_renderHeight;
+
 	Microsoft::WRL::ComPtr<ID3D11Query> m_disjointQuery;
 	Microsoft::WRL::ComPtr<ID3D11Query> m_startQuery;
 	Microsoft::WRL::ComPtr<ID3D11Query> m_endQuery;
 
 	Microsoft::WRL::ComPtr<IDXGIFactory4> m_factory;
+
 	Microsoft::WRL::ComPtr<IDXGIAdapter3> m_adapter;
 	Microsoft::WRL::ComPtr<IDXGIOutput> m_adapterOutput;
 	unsigned m_numerator = 0;
 	unsigned m_denominator = 1;
+	char m_videoCardDescription[128];
+	DXGI_QUERY_VIDEO_MEMORY_INFO m_videoMemoryInfo = {};
 
 	Microsoft::WRL::ComPtr<ID3D11Device> m_device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_deviceContext;

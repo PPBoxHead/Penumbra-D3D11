@@ -14,10 +14,10 @@ extern "C" {
 using namespace Microsoft::WRL;
 
 RenderDeviceD3D11::RenderDeviceD3D11(int t_window_width, int t_window_height, HWND t_hwnd) {
-    windowWidth = t_window_width;
-    windowHeight = t_window_height;
+    m_windowWidth = t_window_width;
+    m_windowHeight = t_window_height;
 
-    InitD3D11(t_hwnd);
+    InitializeD3D11(t_hwnd);
 }
 
 RenderDeviceD3D11::~RenderDeviceD3D11() {
@@ -48,6 +48,22 @@ ID3D11RenderTargetView* RenderDeviceD3D11::GetRenderTargetView() {
 ID3D11DepthStencilView* RenderDeviceD3D11::GetDepthStencilView() {
     return m_depthStencilView.Get();
 }
+
+DXGI_QUERY_VIDEO_MEMORY_INFO RenderDeviceD3D11::GetVideoMemoryInfo() {
+    return m_videoMemoryInfo;
+}
+
+char* RenderDeviceD3D11::GetVideoCardDescription() {
+    return m_videoCardDescription;
+}
+
+int RenderDeviceD3D11::GetWindowWidth() {
+    return m_windowWidth;
+}
+int RenderDeviceD3D11::GetWindowHeight() {
+    return m_windowHeight;
+}
+
 
 // Frame lifecycle
 void RenderDeviceD3D11::StartFrame(const std::array<float, 4>& clearColor) {
@@ -83,15 +99,15 @@ void RenderDeviceD3D11::PresentFrame() {
         gpuFrameTime = -1.0f; // Indicate invalid GPU timing
     }
 
-    m_swapChain->Present(is_vsync_enabled ? 1 : 0, 0);
+    m_swapChain->Present(m_vsyncEnabled ? 1 : 0, 0);
 }
 
 void RenderDeviceD3D11::Resize(int newWidth, int newHeight) {
     if (newWidth <= 0 || newHeight <= 0) return;
 
     // Update window dimensions
-    windowWidth = newWidth;
-    windowHeight = newHeight;
+    m_windowWidth = newWidth;
+    m_windowHeight = newHeight;
 
     // Release current resources
     m_renderTargetView.Reset();
@@ -100,7 +116,7 @@ void RenderDeviceD3D11::Resize(int newWidth, int newHeight) {
     m_backBuffer.Reset();
 
     UINT swapchainFlags = 0;
-    if (is_vsync_enabled)
+    if (m_vsyncEnabled)
         swapchainFlags = 0;
     else
         swapchainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
@@ -109,8 +125,8 @@ void RenderDeviceD3D11::Resize(int newWidth, int newHeight) {
     // Resize the swap chain
     HRESULT result = m_swapChain->ResizeBuffers(
         0, // Preserve buffer count
-        windowWidth,
-        windowHeight,
+        m_windowWidth,
+        m_windowHeight,
         DXGI_FORMAT_UNKNOWN,
         swapchainFlags
     );
@@ -124,15 +140,15 @@ void RenderDeviceD3D11::Resize(int newWidth, int newHeight) {
     SetupViewport();
 }
 
-void RenderDeviceD3D11::GetVRAMInfo() {
-    HRESULT result = m_adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemoryInfo);
+void RenderDeviceD3D11::QueryVRAMInfo() {
+    HRESULT result = m_adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &m_videoMemoryInfo);
     if (FAILED(result)) {
         LogHRESULTError(result, "Failed to query video memory information.");
     }
 }
 
-// This function calls all the next steps declarated in this header
-void RenderDeviceD3D11::InitD3D11(HWND t_hwnd) {
+// D3D11 Initialization pipeline
+void RenderDeviceD3D11::InitializeD3D11(HWND t_hwnd) {
     try {
         CreateFactory();
         SetupHardwareAdapter();
@@ -150,7 +166,6 @@ void RenderDeviceD3D11::InitD3D11(HWND t_hwnd) {
     }
 
 }
-
 // Creates the DXGI Factory
 void RenderDeviceD3D11::CreateFactory() {
     HRESULT result = CreateDXGIFactory1(__uuidof(IDXGIFactory4), (void**)&m_factory);
@@ -203,8 +218,8 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
     m_numerator = 0;
     m_denominator = 1; // Defaults to uncapped
     for (const auto& mode : displayModeList) {
-        if (mode.Width == static_cast<UINT>(windowWidth) &&
-            mode.Height == static_cast<UINT>(windowHeight)) {
+        if (mode.Width == static_cast<UINT>(m_windowWidth) &&
+            mode.Height == static_cast<UINT>(m_windowHeight)) {
             m_numerator = mode.RefreshRate.Numerator;
             m_denominator = mode.RefreshRate.Denominator;
             break;
@@ -228,7 +243,7 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
     videoCardDedicatedMemory = static_cast<int>(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
     videoCardSharedSystemMemory = static_cast<int>(adapterDesc.SharedSystemMemory / 1024 / 1024);
     size_t stringLength = 0;
-    if (wcstombs_s(&stringLength, videoCardDescription, 128, adapterDesc.Description, 128) != 0) {
+    if (wcstombs_s(&stringLength, m_videoCardDescription, 128, adapterDesc.Description, 128) != 0) {
         CONSOLE_LOG_ERROR("Failed to convert video card description.");
     }
 
@@ -238,7 +253,7 @@ void RenderDeviceD3D11::SetupHardwareAdapter() {
         videoCardDedicatedMemory, "MB");
     CONSOLE_LOG_INFO("Video Card shared system memory (RAM): ",
         videoCardSharedSystemMemory, "MB");
-    CONSOLE_LOG_INFO("Video Card description: ", videoCardDescription);
+    CONSOLE_LOG_INFO("Video Card description: ", m_videoCardDescription);
 #endif
 
 }
@@ -289,18 +304,16 @@ void RenderDeviceD3D11::CreateSwapChain(HWND t_hwnd) {
     // Double buffering
     swapChainDesc.BufferCount = 2;
 
-    swapChainDesc.BufferDesc.Width = windowWidth;
-    swapChainDesc.BufferDesc.Height = windowHeight;
+    swapChainDesc.BufferDesc.Width = m_windowWidth;
+    swapChainDesc.BufferDesc.Height = m_windowHeight;
     // RGBA 32-bit
     swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; 
 
-    if (is_vsync_enabled)
-    {
+    if (m_vsyncEnabled) {
         swapChainDesc.BufferDesc.RefreshRate.Numerator = m_numerator;
         swapChainDesc.BufferDesc.RefreshRate.Denominator = m_denominator;
     }
-    else
-    {
+    else {
         swapChainDesc.BufferDesc.RefreshRate.Numerator = 0;
         swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
         swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
@@ -342,8 +355,8 @@ void RenderDeviceD3D11::CreateRenderTargetView() {
 void RenderDeviceD3D11::CreateRenderPipeline() {
     // Create Depth-Stencil Buffer
     D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
-    depthStencilBufferDesc.Width = windowWidth;  // Set width and height of the buffer
-    depthStencilBufferDesc.Height = windowHeight;
+    depthStencilBufferDesc.Width = m_windowWidth;  // Set width and height of the buffer
+    depthStencilBufferDesc.Height = m_windowHeight;
 
     depthStencilBufferDesc.MipLevels = 1;
     depthStencilBufferDesc.ArraySize = 1;
@@ -438,8 +451,8 @@ void RenderDeviceD3D11::CreateRenderPipeline() {
 void RenderDeviceD3D11::SetupViewport() {
     m_viewport.TopLeftX = 0.0f;
     m_viewport.TopLeftY = 0.0f;
-    m_viewport.Width = static_cast<FLOAT>(windowWidth);
-    m_viewport.Height = static_cast<FLOAT>(windowHeight);
+    m_viewport.Width = static_cast<FLOAT>(m_windowWidth);
+    m_viewport.Height = static_cast<FLOAT>(m_windowHeight);
     m_viewport.MinDepth = 0.0f;
     m_viewport.MaxDepth = 1.0f;
 
