@@ -160,11 +160,11 @@
     <ClCompile Include="third-party\include\imgui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\graphics\RenderDeviceD3D11.h" />
-    <ClInclude Include="src\graphics\Shader.h" />
-    <ClInclude Include="src\graphics\VertexFormat.h" />
-    <ClInclude Include="src\utils\ConsoleLogger.h" />
-    <ClInclude Include="src\utils\FileSystem.h" />
+    <ClInclude Include="src\graphics\RenderDeviceD3D11.hpp" />
+    <ClInclude Include="src\graphics\Shader.hpp" />
+    <ClInclude Include="src\graphics\VertexFormat.hpp" />
+    <ClInclude Include="src\utils\ConsoleLogger.hpp" />
+    <ClInclude Include="src\utils\FileSystem.hpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="resources\shaders\ColoredTexturedVertex_ps.hlsl">

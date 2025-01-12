@@ -1,6 +1,6 @@
-#include "RenderDeviceD3D11.h"
+#include "RenderDeviceD3D11.hpp"
 
-#include "../Utils/ConsoleLogger.h"
+#include "../Utils/ConsoleLogger.hpp"
 
 #include <vector>
 

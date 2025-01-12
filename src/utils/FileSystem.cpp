@@ -1,6 +1,6 @@
-#include "FileSystem.h"
+#include "FileSystem.hpp"
 
-#include "ConsoleLogger.h"
+#include "ConsoleLogger.hpp"
 
 #include <Windows.h>
 

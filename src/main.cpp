@@ -13,12 +13,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
-#include "graphics/RenderDeviceD3D11.h"
-#include "graphics/VertexFormat.h"
-#include "graphics/Shader.h"
+#include "graphics/RenderDeviceD3D11.hpp"
+#include "graphics/VertexFormat.hpp"
+#include "graphics/Shader.hpp"
 
-#include "utils/ConsoleLogger.h"
-#include "utils/FileSystem.h"
+#include "utils/ConsoleLogger.hpp"
+#include "utils/FileSystem.hpp"
 
 
 using namespace Microsoft::WRL;

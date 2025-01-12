@@ -1,9 +1,9 @@
-#include "Shader.h"
+#include "Shader.hpp"
 
 #include <d3dcompiler.h>
 #include <cstring>
 
-#include "../utils/ConsoleLogger.h"
+#include "../utils/ConsoleLogger.hpp"
 
 
 using namespace Microsoft::WRL;
