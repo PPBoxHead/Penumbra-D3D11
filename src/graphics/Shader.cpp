@@ -154,7 +154,7 @@ bool Shader::CreateConstantBuffer(ID3D11Device* device, const std::string& name,
     }
 
     m_constantBuffers[name] = buffer;
-    //ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Created constant buffer: ", m_constantBuffers.find(name)->first);
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Created constant buffer: ", m_constantBuffers.find(name)->first);
     return true;
 }
 
@@ -215,7 +215,7 @@ bool Shader::CreateShaderResourceView(const std::string& name, ID3D11ShaderResou
     }
 
     m_shaderResourceViews[name] = srv;
-    //ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Added shader resource view: " + name);
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Added shader resource view: " + name);
     return true;
 }
 
@@ -226,7 +226,7 @@ bool Shader::CreateSamplerState(const std::string& name, ID3D11SamplerState* sam
     }
 
     m_samplerStates[name] = sampler;
-    //ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Added sampler state: " + name);
+    ConsoleLogger::Print(ConsoleLogger::LogType::C_INFO, "Added sampler state: " + name);
     return true;
 }
 
