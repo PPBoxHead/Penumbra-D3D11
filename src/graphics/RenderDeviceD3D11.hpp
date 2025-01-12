@@ -62,7 +62,7 @@ private:
 	// Create device and device context
 	void InitializeDeviceAndContext();
 	// Create the swapchain desc and setup the swapchain
-	HRESULT CreateSwapChain();
+	void CreateSwapChain();
 	// Get the back buffer and create the render target view
 	void CreateRenderTargetView();
 	// Creates the stencil desc and setup the Stencil State, but also render desc and the Rasterizer State

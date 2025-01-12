@@ -67,14 +67,27 @@ void RenderDeviceD3D11::PresentFrame() {
         gpuFrameTime = -1.0f; // Indicate invalid GPU timing
     }
 
-    // Present the frame
-    UINT syncInterval = m_vsyncEnabled ? 1 : 0; // 1 for VSync, 0 for no VSync
-    UINT presentFlags = m_vsyncEnabled ? 0 : DXGI_PRESENT_ALLOW_TEARING;
+    UINT syncInterval = m_vsyncEnabled ? 1 : 0; // Use 1 for VSync, 0 for no VSync
+    UINT presentFlags = 0;
+
+    // Only allow tearing if VSync is disabled and tearing is supported
+    if (!m_vsyncEnabled && m_tearingSupported) {
+        presentFlags = DXGI_PRESENT_ALLOW_TEARING;
+    }
 
     HRESULT result = m_swapChain->Present(syncInterval, presentFlags);
+
+    // Handle errors
     if (FAILED(result)) {
-        LogHRESULTError(result, "Failed to present the swap chain.");
-        return;
+        if (result == DXGI_ERROR_INVALID_CALL) {
+            CONSOLE_LOG_ERROR("Invalid parameters passed to Present. Check your swap chain creation flags.");
+        }
+        else if (result == DXGI_ERROR_DEVICE_REMOVED) {
+            CONSOLE_LOG_CRITICAL_ERROR("The device was removed. Reason: ", m_device->GetDeviceRemovedReason());
+        }
+        else {
+            LogHRESULTError(result, "Failed to present the swap chain.");
+        }
     }
 }
 
@@ -157,26 +170,9 @@ bool RenderDeviceD3D11::IsVSyncEnabled() {
     return m_vsyncEnabled;
 }
 void RenderDeviceD3D11::SetVSyncEnabled(bool enabled) {
-    // Update the internal VSync state
     m_vsyncEnabled = enabled;
 
-    // Release current resources
-    m_swapChain.Reset();
-    m_renderTargetView.Reset();
-    m_depthStencilView.Reset();
-    m_depthStencilBuffer.Reset();
-    m_backBuffer.Reset();
-
-    // Resize the swap chain
-    HRESULT result = CreateSwapChain();
-    CreateRenderTargetView();
-    CreateRenderPipeline();
-    SetupViewport();
-
-    if (FAILED(result)) {
-        LogHRESULTError(result, "Failed to resize swap chain during VSync toggle.");
-        return;
-    }
+    CONSOLE_LOG_INFO("VSync is now ", enabled ? "enabled" : "disabled");
 }
 
 // D3D11 Initialization pipeline
@@ -223,6 +219,7 @@ void RenderDeviceD3D11::CheckTearingSupport() {
     );
 
     m_tearingSupported = SUCCEEDED(result) && allowTearing;
+    CONSOLE_LOG_INFO("Tearing support: ", m_tearingSupported ? "Available" : "Not available");
 }
 // Enumerate the hardware adapter
 void RenderDeviceD3D11::SetupHardwareAdapter() {
@@ -350,29 +347,27 @@ void RenderDeviceD3D11::InitializeDeviceAndContext() {
         LogHRESULTError(result, "Failed to create Direct3D device: ");
 }
 // Create the swapchain desc and setup the swapchain
-HRESULT RenderDeviceD3D11::CreateSwapChain() {
+void RenderDeviceD3D11::CreateSwapChain() {
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
 
     // Double buffering
     swapChainDesc.BufferCount = 2;
 
+    // Back buffer dimensions
     swapChainDesc.BufferDesc.Width = m_windowWidth;
     swapChainDesc.BufferDesc.Height = m_windowHeight;
-    // RGBA 32-bit
-    swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; 
 
-    // Configure tearing support
-    if (m_vsyncEnabled) {
-        swapChainDesc.BufferDesc.RefreshRate.Numerator = m_numerator;
-        swapChainDesc.BufferDesc.RefreshRate.Denominator = m_denominator;
-        swapChainDesc.Flags = 0; // No tearing
-    }
-    else if (m_tearingSupported) {
+    // RGBA 32-bit format
+    swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+    if (m_tearingSupported) {
+        // For tearing, refresh rate is irrelevant
         swapChainDesc.BufferDesc.RefreshRate.Numerator = 0;
         swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
         swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
     }
     else {
+        // Fallback: VSync enabled when tearing is unsupported
         CONSOLE_LOG_WARNING("Tearing is not supported. Defaulting to VSync.");
         m_vsyncEnabled = true;
         swapChainDesc.BufferDesc.RefreshRate.Numerator = m_numerator;
@@ -380,30 +375,46 @@ HRESULT RenderDeviceD3D11::CreateSwapChain() {
         swapChainDesc.Flags = 0; // No tearing
     }
 
-    // Set the usage of the back buffer.
+    // Back buffer usage
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    // Set the scan line ordering and scaling to unspecified.
+
+    // Scanline ordering and scaling
     swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
     swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 
+    // Set the output window
     swapChainDesc.OutputWindow = m_hwnd;
 
-    swapChainDesc.SampleDesc.Count = 1; // No MSAA
+    // No MSAA
+    swapChainDesc.SampleDesc.Count = 1;
     swapChainDesc.SampleDesc.Quality = 0;
 
+    // Windowed mode
     swapChainDesc.Windowed = TRUE;
+
+    // Use the modern flip model for better performance
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-    //swapChainDesc.Flags = 0;
-
-    // Use the factory to create the swap chain
+    // Create the swap chain
     HRESULT result = m_factory->CreateSwapChain(
         m_device.Get(),
         &swapChainDesc,
-        m_swapChain.GetAddressOf()
+        m_swapChain.ReleaseAndGetAddressOf()
     );
 
-    return result;
+    // Error handling
+    if (FAILED(result)) {
+        LogHRESULTError(result, "Failed to create the swap chain.");
+        throw std::runtime_error("Swap chain creation failed.");
+    }
+
+    // Additional configuration for tearing support (optional)
+    if (m_tearingSupported) {
+        CONSOLE_LOG_INFO("Tearing is supported and enabled.");
+    }
+    else {
+        CONSOLE_LOG_INFO("VSync is enabled as tearing is not supported.");
+    }
 }
 // Get the back buffer and create the render target view
 void RenderDeviceD3D11::CreateRenderTargetView() {

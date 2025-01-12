@@ -203,7 +203,7 @@ int main() {
 	
 
 	renderDevice = std::make_unique<RenderDeviceD3D11>(1280, 720, glfwGetWin32Window(window));
-	
+	setVsync = renderDevice->IsVSyncEnabled();
 	/// How to render a colored quad in D3D11:
 	ID3D11Device* device = renderDevice->GetDevice(); // This is to call the creation of buffers with device->CreateBuffer() call
 	ID3D11DeviceContext* deviceContext = renderDevice->GetDeviceContext();
