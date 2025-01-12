@@ -104,16 +104,22 @@ void RenderDeviceD3D11::Resize(int newWidth, int newHeight) {
     m_depthStencilBuffer.Reset();
     m_backBuffer.Reset();
 
-    UINT flags = (m_tearingSupported && !m_vsyncEnabled) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+    DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+    HRESULT result = m_swapChain.Get()->GetDesc(&swapChainDesc);
+    if (FAILED(result))
+    {
+        LogHRESULTError(result, "Failed to retrieve swap chain description.");
+        return;
+    }
 
-    // Resize the swap chain
-    HRESULT result = m_swapChain->ResizeBuffers(
-        0, // Preserve buffer count
+    result = m_swapChain->ResizeBuffers(
+        0,
         m_windowWidth,
         m_windowHeight,
         DXGI_FORMAT_UNKNOWN,
-        flags
-    );
+        swapChainDesc.Flags
+    ); // Use the flags from the retrieved description
+
     if (FAILED(result)) {
         LogHRESULTError(result, "Failed to resize swap chain.");
         return;
